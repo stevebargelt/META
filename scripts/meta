@@ -117,6 +117,68 @@ step_wait() {
   done
 }
 
+select_cli() {
+  local step_cli="$1"
+  local default_cli="$2"
+
+  if [[ -z "$step_cli" || "$step_cli" == "-" ]]; then
+    step_cli="$default_cli"
+  fi
+
+  if [[ "$step_cli" == "interactive" ]]; then
+    if [[ "$default_cli" == "codex" ]]; then
+      step_cli="codex-interactive"
+    else
+      step_cli="claude-interactive"
+    fi
+  fi
+
+  if [[ -z "$step_cli" || "$step_cli" == "-" ]]; then
+    step_cli="claude"
+  fi
+
+  printf "%s" "$step_cli"
+}
+
+pipeline_switch() {
+  local project="$1"
+  local run_id="$2"
+  local state_file="$3"
+
+  local next_pipeline="$project/.meta/next.pipeline"
+  if [[ ! -f "$next_pipeline" ]]; then
+    return 1
+  fi
+
+  local stamp
+  stamp=$(date -u +"%Y%m%dT%H%M%SZ")
+  local saved="$project/.meta/steps/$run_id/next-${stamp}.pipeline"
+
+  mv "$next_pipeline" "$saved"
+
+  if ! workflow_parse "$saved"; then
+    echo "Invalid next pipeline: $saved" >&2
+    return 2
+  fi
+
+  local name
+  name="${WF_NAME:-$(basename "$saved" .pipeline)}"
+
+  state_set "$state_file" "pipeline" "$name"
+  state_set "$state_file" "pipeline_file" "$saved"
+  state_set "$state_file" "current_step" "0"
+
+  local i
+  for ((i=1; i<=WF_STEP_COUNT; i++)); do
+    state_set "$state_file" "step_${i}" "pending"
+  done
+
+  echo ""
+  echo "Switched to pipeline: $name"
+
+  return 0
+}
+
 step_launch() {
   local session="$1"
   local project="$2"
@@ -136,6 +198,10 @@ step_launch() {
   rm -f "$AGENT_EXIT_FILE" >/dev/null 2>&1 || true
   if [[ "$handoff_file" == *".handoff-step-"* ]]; then
     rm -f "$project/.meta/steps/$run_id/step-${step_num}.merged" >/dev/null 2>&1 || true
+  fi
+
+  if [[ "$cli" == "claude-interactive" || "$cli" == "codex-interactive" ]]; then
+    echo "Interactive step ${step_num} (${agent}). Switch to tmux window '${window_name}' to answer prompts, then exit to continue."
   fi
 
   tmux_new_window "$session" "$window_name" "bash \"$AGENT_RUN_FILE\""
@@ -172,10 +238,19 @@ run_step_serial() {
     state_set "$state_file" "step_${step_num}" "failed"
 
     local message
+    local log_file="$project/.meta/steps/$run_id/step-${step_num}.log"
     if [[ "$wait_result" == "timeout" ]]; then
-      message="Step ${step_num} (${agent}) timed out."
+      if [[ -f "$log_file" ]]; then
+        message="Step ${step_num} (${agent}) timed out. Log: ${log_file}"
+      else
+        message="Step ${step_num} (${agent}) timed out. Check the tmux step window."
+      fi
     else
-      message="Step ${step_num} (${agent}) failed (exit ${wait_result#fail:})."
+      if [[ -f "$log_file" ]]; then
+        message="Step ${step_num} (${agent}) failed (exit ${wait_result#fail:}). Log: ${log_file}"
+      else
+        message="Step ${step_num} (${agent}) failed (exit ${wait_result#fail:}). Check the tmux step window."
+      fi
     fi
 
     local decision
@@ -302,13 +377,7 @@ control_run() {
         local agent
         agent="${WF_STEP_AGENT[$j]}"
         local cli
-        cli="${WF_STEP_CLI[$j]}"
-        if [[ -n "$default_cli" ]]; then
-          cli="$default_cli"
-        fi
-        if [[ -z "$cli" || "$cli" == "-" ]]; then
-          cli="claude"
-        fi
+        cli=$(select_cli "${WF_STEP_CLI[$j]}" "$default_cli")
 
         local prompt
         prompt="${WF_STEP_PROMPT[$j]}"
@@ -352,10 +421,19 @@ control_run() {
         agent="${WF_STEP_AGENT[$step_num]}"
 
         local message
+        local log_file="$project/.meta/steps/$run_id/step-${step_num}.log"
         if [[ "$reason" == "timeout" ]]; then
-          message="Step ${step_num} (${agent}) timed out."
+          if [[ -f "$log_file" ]]; then
+            message="Step ${step_num} (${agent}) timed out. Log: ${log_file}"
+          else
+            message="Step ${step_num} (${agent}) timed out. Check the tmux step window."
+          fi
         else
-          message="Step ${step_num} (${agent}) failed (exit ${reason#fail:})."
+          if [[ -f "$log_file" ]]; then
+            message="Step ${step_num} (${agent}) failed (exit ${reason#fail:}). Log: ${log_file}"
+          else
+            message="Step ${step_num} (${agent}) failed (exit ${reason#fail:}). Check the tmux step window."
+          fi
         fi
 
         local decision
@@ -364,13 +442,7 @@ control_run() {
         case "$decision" in
           retry)
             local cli
-            cli="${WF_STEP_CLI[$step_num]}"
-            if [[ -n "$default_cli" ]]; then
-              cli="$default_cli"
-            fi
-            if [[ -z "$cli" || "$cli" == "-" ]]; then
-              cli="claude"
-            fi
+            cli=$(select_cli "${WF_STEP_CLI[$step_num]}" "$default_cli")
 
             local prompt
             prompt="${WF_STEP_PROMPT[$step_num]}"
@@ -414,13 +486,7 @@ control_run() {
               ;;
             retry)
               local cli
-              cli="${WF_STEP_CLI[$gate_step]}"
-              if [[ -n "$default_cli" ]]; then
-                cli="$default_cli"
-              fi
-              if [[ -z "$cli" || "$cli" == "-" ]]; then
-                cli="claude"
-              fi
+              cli=$(select_cli "${WF_STEP_CLI[$gate_step]}" "$default_cli")
 
               local prompt
               prompt="${WF_STEP_PROMPT[$gate_step]}"
@@ -445,6 +511,19 @@ control_run() {
         fi
       done
 
+      local switch_result
+      if pipeline_switch "$project" "$run_id" "$state_file"; then
+        pipeline=$(state_get "$state_file" "pipeline_file" || true)
+        pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
+        idx=1
+        continue
+      else
+        switch_result=$?
+        if [[ "$switch_result" -eq 2 ]]; then
+          return 1
+        fi
+      fi
+
       idx=$((group_end + 1))
       continue
     fi
@@ -452,13 +531,7 @@ control_run() {
     local agent
     agent="${WF_STEP_AGENT[$idx]}"
     local cli
-    cli="${WF_STEP_CLI[$idx]}"
-    if [[ -n "$default_cli" ]]; then
-      cli="$default_cli"
-    fi
-    if [[ -z "$cli" || "$cli" == "-" ]]; then
-      cli="claude"
-    fi
+    cli=$(select_cli "${WF_STEP_CLI[$idx]}" "$default_cli")
 
     local prompt
     prompt="${WF_STEP_PROMPT[$idx]}"
@@ -491,6 +564,19 @@ control_run() {
           return 1
           ;;
       esac
+    fi
+
+    local switch_result
+    if pipeline_switch "$project" "$run_id" "$state_file"; then
+      pipeline=$(state_get "$state_file" "pipeline_file" || true)
+      pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
+      idx=1
+      continue
+    else
+      switch_result=$?
+      if [[ "$switch_result" -eq 2 ]]; then
+        return 1
+      fi
     fi
 
     idx=$((idx + 1))
@@ -597,6 +683,7 @@ meta_run() {
 
   local meta_dir="$project/.meta"
   mkdir -p "$meta_dir/steps/$run_id"
+  rm -f "$meta_dir/next.pipeline" >/dev/null 2>&1 || true
 
   handoff_init "$project" "$task" "$run_id" "$pipeline_name"
 

@@ -25,6 +25,7 @@ agent_prepare_step() {
   AGENT_SYSTEM_FILE="$steps_dir/step-${step_num}.system.md"
   AGENT_RUN_FILE="$steps_dir/step-${step_num}.run.sh"
   AGENT_EXIT_FILE="$steps_dir/step-${step_num}.exit"
+  local log_file="$steps_dir/step-${step_num}.log"
 
   local agent_def="$meta_dir/agents/${agent}.md"
   if [[ ! -f "$agent_def" ]]; then
@@ -59,26 +60,33 @@ CLI="$cli"
 PROMPT_FILE="$AGENT_PROMPT_FILE"
 SYSTEM_FILE="$AGENT_SYSTEM_FILE"
 EXIT_FILE="$AGENT_EXIT_FILE"
+LOG_FILE="$log_file"
 
-if [[ "$CLI" == "claude" ]]; then
-  if claude -p "\$(cat \"\$PROMPT_FILE\")" --system-prompt "\$(cat \"\$SYSTEM_FILE\")" --allowedTools "Bash Edit Read Write Glob Grep" ${unsafe_flag}; then
+if [[ "\$CLI" == "claude" ]]; then
+  if claude -p "\$(cat "\$PROMPT_FILE")" --system-prompt "\$(cat "\$SYSTEM_FILE")" --allowedTools "Bash Edit Read Write Glob Grep" ${unsafe_flag} >"\$LOG_FILE" 2>&1; then
     exit_code=0
   else
-    exit_code=$?
+    exit_code=\$?
   fi
-elif [[ "$CLI" == "codex" ]]; then
-  if codex exec "\$(cat \"\$PROMPT_FILE\")"; then
+elif [[ "\$CLI" == "claude-interactive" ]]; then
+  claude "\$(cat "\$PROMPT_FILE")" --system-prompt "\$(cat "\$SYSTEM_FILE")" --allowedTools "Bash Edit Read Write Glob Grep" ${unsafe_flag}
+  exit_code=\$?
+elif [[ "\$CLI" == "codex" ]]; then
+  if codex exec "\$(cat "\$PROMPT_FILE")" >"\$LOG_FILE" 2>&1; then
     exit_code=0
   else
-    exit_code=$?
+    exit_code=\$?
   fi
+elif [[ "\$CLI" == "codex-interactive" ]]; then
+  codex "\$(cat "\$PROMPT_FILE")"
+  exit_code=\$?
 else
-  echo "Unknown CLI: $CLI" >&2
+  echo "Unknown CLI: \$CLI" >"\$LOG_FILE" 2>&1
   exit_code=127
 fi
 
-printf "%s" "$exit_code" > "$EXIT_FILE"
-exit "$exit_code"
+printf "%s" "\$exit_code" > "\$EXIT_FILE"
+exit "\$exit_code"
 EOF_RUN
 
   chmod +x "$AGENT_RUN_FILE" >/dev/null 2>&1 || true
