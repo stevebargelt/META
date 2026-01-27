@@ -121,16 +121,22 @@ select_cli() {
   local step_cli="$1"
   local default_cli="$2"
 
-  if [[ -z "$step_cli" || "$step_cli" == "-" ]]; then
-    step_cli="$default_cli"
+  if [[ -n "$default_cli" ]]; then
+    if [[ "$step_cli" == "interactive" ]]; then
+      if [[ "$default_cli" == "codex" ]]; then
+        step_cli="codex-interactive"
+      else
+        step_cli="claude-interactive"
+      fi
+    elif [[ "$step_cli" == "claude-interactive" || "$step_cli" == "codex-interactive" ]]; then
+      :
+    else
+      step_cli="$default_cli"
+    fi
   fi
 
-  if [[ "$step_cli" == "interactive" ]]; then
-    if [[ "$default_cli" == "codex" ]]; then
-      step_cli="codex-interactive"
-    else
-      step_cli="claude-interactive"
-    fi
+  if [[ -z "$step_cli" || "$step_cli" == "-" ]]; then
+    step_cli="${default_cli:-}"
   fi
 
   if [[ -z "$step_cli" || "$step_cli" == "-" ]]; then
@@ -190,7 +196,10 @@ step_launch() {
   local handoff_file="$8"
   local unsafe_flag="$9"
 
-  agent_prepare_step "$project" "$run_id" "$step_num" "$agent" "$cli" "$prompt" "$handoff_file" "$META_DIR" "$unsafe_flag"
+  if ! agent_prepare_step "$project" "$run_id" "$step_num" "$agent" "$cli" "$prompt" "$handoff_file" "$META_DIR" "$unsafe_flag"; then
+    printf "%s" "127" > "$AGENT_EXIT_FILE"
+    return 1
+  fi
 
   local window_name
   window_name="step-${step_num}-${agent}"
@@ -343,7 +352,68 @@ control_run() {
     local status
     status=$(state_get "$state_file" "step_${idx}" || echo "pending")
 
+    if [[ "$status" == "running" ]]; then
+      local agent
+      agent="${WF_STEP_AGENT[$idx]}"
+      local exit_file="$project/.meta/steps/$run_id/step-${idx}.exit"
+      if [[ -f "$exit_file" ]]; then
+        local exit_code
+        exit_code=$(cat "$exit_file" 2>/dev/null || echo "1")
+        if [[ "$exit_code" == "0" ]]; then
+          state_set "$state_file" "step_${idx}" "done"
+          status="done"
+        else
+          state_set "$state_file" "step_${idx}" "failed"
+          status="failed"
+        fi
+      else
+        if ! tmux list-windows -t "$session" 2>/dev/null | grep -q "step-${idx}-${agent}"; then
+          state_set "$state_file" "step_${idx}" "pending"
+          status="pending"
+        fi
+      fi
+    fi
+
     if [[ "$status" == "done" || "$status" == "skipped" ]]; then
+      if [[ "${WF_STEP_GATE[$idx]}" == "gate" ]]; then
+        local gate_status
+        gate_status=$(state_get "$state_file" "gate_${idx}" || true)
+        if [[ "$gate_status" != "done" ]]; then
+          local agent
+          agent="${WF_STEP_AGENT[$idx]}"
+          local decision
+          decision=$(gate_prompt "QUALITY GATE after step ${idx} (${agent})")
+
+          case "$decision" in
+            approve)
+              state_set "$state_file" "gate_${idx}" "done"
+              ;;
+            retry)
+              local cli
+              cli=$(select_cli "${WF_STEP_CLI[$idx]}" "$default_cli")
+              local prompt
+              prompt="${WF_STEP_PROMPT[$idx]}"
+              local timeout_min
+              timeout_min="${WF_STEP_TIMEOUT[$idx]}"
+              local handoff_file="$project/.handoff.md"
+
+              if ! run_step_serial "$session" "$project" "$run_id" "$idx" "$agent" "$cli" "$prompt" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
+                return 1
+              fi
+              state_set "$state_file" "gate_${idx}" "done"
+              ;;
+            skip)
+              state_set "$state_file" "step_${idx}" "skipped"
+              state_set "$state_file" "gate_${idx}" "done"
+              ;;
+            abort)
+              echo "Aborting pipeline."
+              return 1
+              ;;
+          esac
+        fi
+      fi
+
       idx=$((idx + 1))
       continue
     fi
@@ -483,6 +553,7 @@ control_run() {
 
           case "$decision" in
             approve)
+              state_set "$state_file" "gate_${gate_step}" "done"
               ;;
             retry)
               local cli
@@ -499,9 +570,11 @@ control_run() {
                 return 1
               fi
               handoff_merge_step "$project" "$run_id" "$gate_step" "$agent"
+              state_set "$state_file" "gate_${gate_step}" "done"
               ;;
             skip)
               state_set "$state_file" "step_${gate_step}" "skipped"
+              state_set "$state_file" "gate_${gate_step}" "done"
               ;;
             abort)
               echo "Aborting pipeline."
@@ -550,14 +623,17 @@ control_run() {
 
       case "$decision" in
         approve)
+          state_set "$state_file" "gate_${idx}" "done"
           ;;
         retry)
           if ! run_step_serial "$session" "$project" "$run_id" "$idx" "$agent" "$cli" "$prompt" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
             return 1
           fi
+          state_set "$state_file" "gate_${idx}" "done"
           ;;
         skip)
           state_set "$state_file" "step_${idx}" "skipped"
+          state_set "$state_file" "gate_${idx}" "done"
           ;;
         abort)
           echo "Aborting pipeline."
@@ -825,15 +901,8 @@ meta_resume() {
   fi
 
   run_id=$(state_get "$state_file" "run_id" || true)
-
-  if tmux_session_exists "$session"; then
-    tmux_attach "$session"
-    return 0
-  fi
-
-  tmux_require
-
   local meta_dir="$project/.meta"
+
   local control_flags=""
   if [[ -n "$default_cli" ]]; then
     control_flags+=" --cli \"$default_cli\""
@@ -849,6 +918,16 @@ set -euo pipefail
 "$SCRIPT_DIR/meta" --control --project "$project" --pipeline "$pipeline" --run-id "$run_id"${control_flags}
 EOF_CTRL
   chmod +x "$control_script" >/dev/null 2>&1 || true
+
+  if tmux_session_exists "$session"; then
+    if tmux list-panes -t "$session:0" 2>/dev/null | grep -q "(dead)"; then
+      tmux respawn-pane -t "$session:0" -k "bash \"$control_script\""
+    fi
+    tmux_attach "$session"
+    return 0
+  fi
+
+  tmux_require
 
   tmux_create_session "$session" "control" "bash \"$control_script\""
   tmux_attach "$session"

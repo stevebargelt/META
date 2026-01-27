@@ -17,6 +17,10 @@ agent_prepare_step() {
   local handoff_file="$7"
   local meta_dir="$8"
   local unsafe_flag="$9"
+  local codex_flags="--sandbox workspace-write"
+  if [[ -n "$unsafe_flag" ]]; then
+    codex_flags="--sandbox danger-full-access"
+  fi
 
   local steps_dir="$project/.meta/steps/$run_id"
   mkdir -p "$steps_dir"
@@ -61,6 +65,7 @@ PROMPT_FILE="$AGENT_PROMPT_FILE"
 SYSTEM_FILE="$AGENT_SYSTEM_FILE"
 EXIT_FILE="$AGENT_EXIT_FILE"
 LOG_FILE="$log_file"
+CODEX_FLAGS="$codex_flags"
 
 if [[ "\$CLI" == "claude" ]]; then
   if claude -p "\$(cat "\$PROMPT_FILE")" --system-prompt "\$(cat "\$SYSTEM_FILE")" --allowedTools "Bash Edit Read Write Glob Grep" ${unsafe_flag} >"\$LOG_FILE" 2>&1; then
@@ -72,13 +77,13 @@ elif [[ "\$CLI" == "claude-interactive" ]]; then
   claude "\$(cat "\$PROMPT_FILE")" --system-prompt "\$(cat "\$SYSTEM_FILE")" --allowedTools "Bash Edit Read Write Glob Grep" ${unsafe_flag}
   exit_code=\$?
 elif [[ "\$CLI" == "codex" ]]; then
-  if codex exec "\$(cat "\$PROMPT_FILE")" >"\$LOG_FILE" 2>&1; then
+  if codex exec \$CODEX_FLAGS "\$(cat "\$PROMPT_FILE")" >"\$LOG_FILE" 2>&1; then
     exit_code=0
   else
     exit_code=\$?
   fi
 elif [[ "\$CLI" == "codex-interactive" ]]; then
-  codex "\$(cat "\$PROMPT_FILE")"
+  codex \$CODEX_FLAGS "\$(cat "\$PROMPT_FILE")"
   exit_code=\$?
 else
   echo "Unknown CLI: \$CLI" >"\$LOG_FILE" 2>&1
