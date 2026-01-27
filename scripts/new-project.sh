@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: new-project.sh <project-name> [--base <path>] [--tool <claude|codex>] [--kickoff] [--launch] [--launch-cmd <cmd>] [--open] [--git]
+Usage: new-project.sh <project-name> [--base <path>] [--tool <claude|codex>] [--task <desc>] [--pipeline <name>] [--unsafe] [--no-orchestrate] [--kickoff] [--launch] [--launch-cmd <cmd>] [--open] [--git] [--no-git]
 
 Creates a new project folder and prints the kickoff prompt.
 Kickoff will ask questions, write the agent config, then hand off to PM for PRD.
@@ -12,6 +12,8 @@ Examples:
   ./scripts/new-project.sh my-app
   ./scripts/new-project.sh my-app --base ~/work --git
   ./scripts/new-project.sh my-app --tool codex --kickoff
+  ./scripts/new-project.sh my-app --task "Build a habit tracker" --unsafe
+  ./scripts/new-project.sh my-app --no-git
 USAGE
 }
 
@@ -24,12 +26,17 @@ PROJECT_NAME="$1"
 shift
 
 BASE_DIR="${HOME}/code"
-INIT_GIT=false
+INIT_GIT=true
 TOOL=""
 AGENT_FILE="AGENTS.md"
 LAUNCH=false
 LAUNCH_CMD=""
 OPEN_FILE=false
+ORCHESTRATE=true
+PIPELINE="project"
+TASK=""
+UNSAFE=false
+declare -a CLI_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -40,6 +47,22 @@ while [[ $# -gt 0 ]]; do
     --tool)
       TOOL="$2"
       shift 2
+      ;;
+    --task)
+      TASK="$2"
+      shift 2
+      ;;
+    --pipeline)
+      PIPELINE="$2"
+      shift 2
+      ;;
+    --unsafe)
+      UNSAFE=true
+      shift
+      ;;
+    --no-orchestrate)
+      ORCHESTRATE=false
+      shift
       ;;
     --launch)
       LAUNCH=true
@@ -61,6 +84,10 @@ while [[ $# -gt 0 ]]; do
       INIT_GIT=true
       shift
       ;;
+    --no-git)
+      INIT_GIT=false
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -74,6 +101,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 PROJECT_DIR="${BASE_DIR}/${PROJECT_NAME}"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ -n "$TOOL" ]]; then
   case "$TOOL" in
@@ -127,12 +156,17 @@ Project path: ${PROJECT_DIR}
 Tool: ${TOOL:-unspecified}
 EOF
 
-cat <<EOF
+if [[ "$ORCHESTRATE" == false ]]; then
+  cat <<EOF
 
 Next: run kickoff in your chat:
 
 $(cat "$KICKOFF_FILE")
 EOF
+else
+  echo ""
+  echo "Kickoff prompt saved to ${KICKOFF_FILE} (orchestration will run kickoff)."
+fi
 
 if [[ "$OPEN_FILE" == true ]]; then
   if [[ -n "${EDITOR:-}" ]]; then
@@ -141,6 +175,31 @@ if [[ "$OPEN_FILE" == true ]]; then
     echo "EDITOR not set; printing kickoff file:"
     cat "$KICKOFF_FILE"
   fi
+fi
+
+if [[ "$ORCHESTRATE" == true ]]; then
+  if [[ -z "$TASK" ]]; then
+    TASK="Project kickoff: define goals, users, scope, and success metrics."
+  fi
+
+  META_CMD="${SCRIPT_DIR}/meta"
+  if [[ ! -x "$META_CMD" ]]; then
+    echo "meta CLI not found or not executable: $META_CMD" >&2
+    exit 1
+  fi
+
+  CLI_ARGS=()
+  if [[ -n "$TOOL" ]]; then
+    CLI_ARGS+=(--cli "$TOOL")
+  fi
+  if [[ "$UNSAFE" == true ]]; then
+    CLI_ARGS+=(--unsafe)
+  fi
+
+  echo ""
+  echo "Starting orchestration pipeline: ${PIPELINE}"
+  "$META_CMD" run "$PIPELINE" --project "$PROJECT_DIR" --task "$TASK" ${CLI_ARGS[@]+"${CLI_ARGS[@]}"}
+  exit 0
 fi
 
 if [[ "$LAUNCH" == true ]]; then
