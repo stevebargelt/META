@@ -152,6 +152,7 @@ Parallel work starts only after contracts are defined and stubbed:
 - Event schemas (pub/sub payloads)
 - UI contracts (route params, events, design tokens)
 - Shared types/interfaces (versioned)
+Use boundary-only SDD for these contracts (see `workflows/spec-driven-development.md`).
 
 ### Workstream Charter
 

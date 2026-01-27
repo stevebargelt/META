@@ -300,6 +300,16 @@ For very complex tasks, use orchestrator agent (or human) to:
 
 See `agents/orchestrator.md` for orchestration patterns.
 
+## Spec-Driven Development (Boundary-Only)
+
+When parallel teams work on shared boundaries, require SDD at the contract level:
+- API contracts
+- Event schemas
+- Remote/module interfaces
+
+Use the minimal checklist in:
+`workflows/spec-driven-development.md`
+
 ## Progress Tracking
 
 For multi-phase work:
