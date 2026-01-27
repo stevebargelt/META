@@ -12,6 +12,10 @@ Break complex work into:
 - **Context handoffs** — Each agent gets what it needs
 - **Quality gates** — Reviews happen at right points
 
+**Agent constraint:** Use only agent definitions that exist in `META/agents/`:
+`base`, `product-manager`, `architect`, `tester`, `reviewer`, `debugger`, `documenter`, `orchestrator`.
+Do not invent new agent names.
+
 ## When to Orchestrate
 
 Use multi-agent approach when:
