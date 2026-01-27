@@ -3,9 +3,9 @@ description: Full feature development flow
 timeout_min: 60
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
-1 | product-manager | claude | auto | - | 30 | Create PRD from task in .handoff.md. Write docs/PRD.md and update .handoff.md with summary.
-2 | architect       | claude | gate | - | -  | Design architecture from PRD. Create ARCHITECTURE.md and update .handoff.md.
-3 | tester          | claude | auto | - | -  | Create test plan and skeleton tests. Update .handoff.md with test plan and files.
-4 | base            | claude | auto | - | -  | Implement feature, make tests pass, update .handoff.md with changes.
-5 | reviewer        | claude | gate | - | -  | Review all changes for quality and security. Update .handoff.md with findings.
-6 | documenter      | claude | auto | - | -  | Update documentation and summarize changes in .handoff.md.
+1 | product-manager | - | auto | - | 30 | Create PRD from task in .handoff.md. Write docs/PRD.md and update .handoff.md with summary.
+2 | architect       | - | gate | - | -  | Design architecture from PRD. Create ARCHITECTURE.md and update .handoff.md.
+3 | tester          | - | auto | - | -  | Create test plan and skeleton tests. Update .handoff.md with test plan and files.
+4 | base            | - | auto | - | -  | Implement feature, make tests pass, update .handoff.md with changes.
+5 | reviewer        | - | gate | - | -  | Review all changes for quality and security. Update .handoff.md with findings.
+6 | documenter      | - | auto | - | -  | Update documentation and summarize changes in .handoff.md.

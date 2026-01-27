@@ -3,8 +3,8 @@ description: Design-heavy refactor flow
 timeout_min: 90
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
-1 | architect | claude | auto | - | - | Plan refactor approach and risks based on .handoff.md. Update .handoff.md.
-2 | reviewer  | claude | auto | A | - | Review current code for risks and pitfalls. Write to .handoff-step-2.md.
-3 | tester    | claude | auto | A | - | Identify coverage gaps and propose tests. Write to .handoff-step-3.md.
-4 | base      | claude | auto | - | - | Execute refactor and update tests. Update .handoff.md.
-5 | reviewer  | claude | gate | - | - | Review refactor for regressions and quality. Update .handoff.md.
+1 | architect | - | auto | - | - | Plan refactor approach and risks based on .handoff.md. Update .handoff.md.
+2 | reviewer  | - | auto | A | - | Review current code for risks and pitfalls. Write to .handoff-step-2.md.
+3 | tester    | - | auto | A | - | Identify coverage gaps and propose tests. Write to .handoff-step-3.md.
+4 | base      | - | auto | - | - | Execute refactor and update tests. Update .handoff.md.
+5 | reviewer  | - | gate | - | - | Review refactor for regressions and quality. Update .handoff.md.

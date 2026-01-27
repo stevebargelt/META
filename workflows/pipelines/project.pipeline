@@ -1,0 +1,9 @@
+name: project
+description: End-to-end new project kickoff and build orchestration
+timeout_min: 90
+
+# NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+1 | base            | interactive | auto | - | 45 | Run kickoff using ../META/prompts/kickoff.md (adjust path if needed). Ask questions in the tmux step window, write AGENTS.md, ensure CLAUDE.md is a symlink, and summarize answers in .handoff.md. Exit the session when done.
+2 | product-manager | - | auto | - | 45 | Create docs/PRD.md from kickoff answers in .handoff.md. Update .handoff.md with scope and open questions.
+3 | architect       | - | gate | - | 45 | Design architecture from PRD. Create ARCHITECTURE.md and update .handoff.md with decisions.
+4 | orchestrator    | - | gate | - | 45 | Create a build plan and write it to .meta/next.pipeline using the pipeline format in ../META/plans/meta-cli-orchestration.md (adjust path if needed). Include name/description/timeout_min and sequential step numbers starting at 1. Include multiple base/test/reviewer/documenter loops as needed, using PARALLEL_GROUP for independent features. Update .handoff.md with the plan summary.
