@@ -19,7 +19,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 
 ### 1. Validate with One Real Project
 - [ ] Pick one project (LED Scoreboard, MeatGeek, or MycoGeek)
-- [ ] Update its agent config (AGENTS.md or tool-specific) to inherit from `../META/agents/base.md`
+- [ ] Ensure AGENTS.md inherits from `../META/agents/base.md` and CLAUDE.md is symlinked
 - [ ] Follow `workflows/new-project.md` end-to-end
 - [ ] Complete a retrospective using `learnings/retrospective-template.md`
 - [ ] Extract at least 3 patterns to `patterns/`
@@ -52,11 +52,12 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 ## Medium-Term (Structural Improvements)
 
 ### 4. Add Simple Tooling
-- [ ] Create `scripts/` directory
-- [ ] `scripts/new-project.sh` - bootstrap new project with AGENTS.md
-- [ ] `scripts/add-pattern.sh` - scaffold new pattern with header template
-- [ ] `scripts/retrospective.sh` - create dated retrospective from template
-- [ ] Document scripts in README.md
+- [x] Create `scripts/` directory
+- [x] `scripts/new-project.sh` - bootstrap new project and print kickoff prompt
+- [x] `scripts/add-pattern.sh` - scaffold new pattern with header template
+- [x] `scripts/retrospective.sh` - create dated retrospective from template
+- [x] `scripts/meta` - tmux orchestration CLI for pipelines
+- [x] Document scripts in README.md
 
 ### 5. Create CHANGELOG.md
 - [ ] Create `CHANGELOG.md` at root
@@ -125,6 +126,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 | Product manager agent + PRD | 2026-01-27 | `agents/product-manager.md`, `prompts/prd-template.md` |
 | Feature-first structure | 2026-01-27 | `patterns/project-structures/feature-first.md` |
 | RN MF templates | 2026-01-27 | `rn-mf-contracts.md`, `rn-mf-host-loader.md` |
+| Meta CLI orchestration | 2026-01-27 | `scripts/meta`, `workflows/pipelines/*` |
 
 ---
 

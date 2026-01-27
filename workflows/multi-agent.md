@@ -64,6 +64,16 @@ How to coordinate multiple specialized agents on complex tasks.
 
 **Handoff:** Use `.handoff.md` (see `prompts/handoff-template.md`, type: `agent-handoff`). Outgoing agent writes it; incoming agent reads it first.
 
+## Automated Execution
+
+For tmux-based orchestration, use the `meta` CLI:
+
+```bash
+./scripts/meta run feature --project ~/code/my-project --task "Your task"
+```
+
+Pipelines live in `workflows/pipelines/`. See `scripts/README.md` for available commands.
+
 ### Bug Fix (Focused Flow)
 
 ```

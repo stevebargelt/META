@@ -51,6 +51,7 @@ Copy the template:
 
 ```bash
 cp ../META/prompts/project-template.md AGENTS.md
+ln -s AGENTS.md CLAUDE.md
 ```
 
 Fill in:
@@ -158,6 +159,7 @@ Start simple, add as needed:
 ```
 project-name/
 ├── AGENTS.md           # Agent definition
+├── CLAUDE.md           # Symlink to AGENTS.md (tool compatibility)
 ├── README.md           # Quick start
 ├── ARCHITECTURE.md     # System design (if applicable)
 ├── src/                # Source code
@@ -315,6 +317,7 @@ When you learn something useful, update META immediately. Don't wait until proje
 cd ~/code && mkdir project && cd project
 git init
 cp ../META/prompts/project-template.md AGENTS.md
+ln -s AGENTS.md CLAUDE.md
 # Edit AGENTS.md
 # Add to META/project-registry.md
 

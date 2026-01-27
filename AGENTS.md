@@ -32,6 +32,5 @@ See `workflows/multi-agent.md` for orchestration patterns.
 
 ## Tool-Specific Notes
 
-If your tool expects a specific filename (e.g., `CLAUDE.md`), use that file
-name and keep the content identical to this file. The behavior is the same.
-
+Use `AGENTS.md` as the source of truth and create a symlink:
+`CLAUDE.md` → `AGENTS.md`. This keeps tools compatible without duplication.

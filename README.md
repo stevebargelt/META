@@ -48,7 +48,7 @@ META/
 │
 ├── scripts/                     # Helper scripts
 │   ├── agent.sh                 # Create handoff file for an agent
-│   ├── new-project.sh           # Bootstrap a new project
+│   ├── new-project.sh           # Bootstrap + kickoff prompt
 │   ├── add-pattern.sh           # Scaffold a pattern file
 │   └── retrospective.sh         # Create dated retrospective
 │
@@ -74,6 +74,7 @@ git init
 
 # Copy project template
 cp ../META/prompts/project-template.md AGENTS.md
+ln -s AGENTS.md CLAUDE.md
 
 # Edit AGENTS.md with:
 # - Inherits: ../META/agents/base.md
@@ -86,8 +87,14 @@ cp ../META/prompts/project-template.md AGENTS.md
 ### Scripts (Optional)
 
 ```bash
-# Bootstrap a project (AGENTS.md + PRD + optional git)
+# Bootstrap a project (prints kickoff prompt)
 ./META/scripts/new-project.sh my-project --git
+
+# Preselect tool + auto-launch kickoff (if CLI installed)
+./META/scripts/new-project.sh my-project --tool codex --kickoff
+
+# Orchestrate a multi-agent pipeline in tmux
+./META/scripts/meta run feature --project ~/code/my-project --task "Add JWT auth"
 
 # Create a handoff file for an agent
 ./META/scripts/agent.sh architect --project ~/code/my-project
@@ -242,7 +249,7 @@ See `workflows/new-project.md` for full guide.
 
 **Quick version:**
 1. Create project directory
-2. Copy `prompts/project-template.md` to project `AGENTS.md` (or a tool-specific name)
+2. Copy `prompts/project-template.md` to project `AGENTS.md` and symlink `CLAUDE.md` → `AGENTS.md`
 3. Fill in project details, inherit from `agents/base.md`
 4. Add to `project-registry.md`
 5. Start building
@@ -388,6 +395,7 @@ That's the compound effect.
 ```bash
 # New project
 cp META/prompts/project-template.md my-project/AGENTS.md
+ln -s AGENTS.md my-project/CLAUDE.md
 # Edit with: Inherits: ../META/agents/base.md
 
 # Reference pattern

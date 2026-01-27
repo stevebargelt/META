@@ -32,7 +32,8 @@ Inherits: ../META/agents/base.md
 
 ## Cross-Model Notes
 
-- Agent config is plain markdown; use a tool-appropriate filename (preferred: `AGENTS.md`)
+- Agent config is plain markdown; use `AGENTS.md` as the source of truth
+- Create `CLAUDE.md` as a symlink to `AGENTS.md` for tool compatibility
 - Tool-calling schemas vary by provider; translate as needed
 - Context windows differ by model
 

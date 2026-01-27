@@ -8,7 +8,33 @@ Short, practical setup for a new project using META.
 ./META/scripts/new-project.sh my-project --git
 ```
 
-Open `~/code/my-project/AGENTS.md` and fill in the basics. Done.
+Optional:
+```bash
+# Preselect tool + auto-launch kickoff (if CLI is installed)
+./META/scripts/new-project.sh my-project --tool codex --kickoff
+```
+
+The script prints a kickoff prompt. Paste it into chat and answer the questions.
+The system will write `AGENTS.md`, create `docs/PRD.md`, then start building.
+
+## Orchestrate with meta (tmux)
+
+```bash
+./META/scripts/meta run feature --project ~/code/my-project --task "Add JWT auth"
+```
+
+Use `meta list` to see available pipelines, `meta doctor` to verify tmux + CLI setup, and `meta status` / `meta resume` / `meta abort` to manage runs.
+
+## Kickoff (hands-off, human-in-the-loop)
+
+Use the kickoff prompt to answer a short question set and let the system
+write `AGENTS.md` (with `CLAUDE.md` symlinked to it), then hand off to the
+Product Manager agent for the PRD, and finally to the Orchestrator:
+
+```
+Start a project kickoff using META/prompts/kickoff.md
+Project path: ~/code/my-project
+```
 
 ## Manual Start (if you prefer)
 
@@ -17,6 +43,7 @@ cd ~/code
 mkdir my-project && cd my-project
 git init
 cp ../META/prompts/project-template.md AGENTS.md
+ln -s AGENTS.md CLAUDE.md
 mkdir -p docs
 cp ../META/prompts/prd-template.md docs/PRD.md
 ```
@@ -25,5 +52,4 @@ Add the project to `META/project-registry.md`, then start building.
 
 ---
 
-Tip: If your tool requires a specific filename (e.g., `CLAUDE.md`), use that name
-but keep the contents the same as `AGENTS.md`.
+Tip: Always keep `AGENTS.md` as the source of truth and symlink `CLAUDE.md` to it.

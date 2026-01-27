@@ -69,7 +69,7 @@ How: State concern → Explain briefly → Offer alternative → Defer to Steve'
 
 ## Project Inheritance
 
-Projects extend this base with their own AGENTS.md (or tool-specific filename):
+Projects extend this base with their own AGENTS.md and a CLAUDE.md symlink:
 
 ```markdown
 # Project Name
