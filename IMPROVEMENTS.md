@@ -30,7 +30,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 ### 2. Populate Pattern Library from Existing Code
 - [ ] API error handling pattern → `patterns/api/`
 - [ ] Testing setup pattern → `patterns/testing/`
-- [ ] Deployment/CI pattern → `patterns/deployment/`
+- [x] Deployment/CI pattern → `patterns/deployment/` (ci-pipeline-node.md, quality-gates.md, ci-setup-checklist)
 - [ ] At least 2 more auth patterns → `patterns/auth/`
 - [x] Document React Native patterns properly (rn-mf-contracts, rn-mf-host-loader)
 

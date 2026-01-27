@@ -5,12 +5,9 @@ Reusable patterns for deployment, CI/CD, and infrastructure.
 ## Patterns in This Category
 
 ### CI/CD
-*(Add patterns here as you create them)*
 
-- GitHub Actions workflows
-- GitLab CI configuration
-- Automated testing pipelines
-- Deployment automation
+- `ci-pipeline-node.md` — Standard GitHub Actions pipeline for Node.js (lint, test, coverage, build)
+- `quality-gates.md` — Required gates, thresholds, and branch protection setup
 
 ### Infrastructure
 *(Add patterns here as you create them)*
@@ -33,11 +30,11 @@ Reusable patterns for deployment, CI/CD, and infrastructure.
 Reference deployment patterns:
 
 ```markdown
-# In project
+# In project AGENTS.md
 
-Deployment approach:
-- CI/CD: META/patterns/deployment/github-actions-node.yml
-- Docker: META/patterns/deployment/dockerfile-node.md
+CI/CD: META/patterns/deployment/ci-pipeline-node.md
+Quality gates: META/patterns/deployment/quality-gates.md
+Setup checklist: META/prompts/ci-setup-checklist.md
 ```
 
 ## When to Add Deployment Patterns

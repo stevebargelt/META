@@ -88,6 +88,15 @@ Add to `META/project-registry.md`:
 Create a one-page PRD at `docs/PRD.md` using:
 `META/prompts/prd-template.md`
 
+### 4c. Set Up CI Pipeline
+
+Every project gets a CI pipeline from the start — not after "things are working."
+
+1. Copy the pipeline from `META/patterns/deployment/ci-pipeline-node.md`
+2. Configure thresholds per `META/patterns/deployment/quality-gates.md`
+3. Run through `META/prompts/ci-setup-checklist.md`
+4. Enable branch protection on `main`
+
 ### 5. Architecture Phase (if applicable)
 
 For medium/complex projects, start with architect agent:
