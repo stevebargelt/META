@@ -6,9 +6,7 @@ Track all AI-assisted projects and their configurations.
 
 | Project | Path | Agent Status |
 |---------|------|--------------|
-| LED Scoreboard | `~/code/led-scoreboard/` | Needs agent config |
-| MeatGeek | `~/code/meatgeek/` | Needs agent config |
-| MycoGeek | `~/code/mycogeek/` | Needs agent config |
+
 
 ## Agent Inheritance
 
