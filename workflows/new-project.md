@@ -28,6 +28,15 @@ End-to-end process for starting a new AI-assisted project.
 
 ## Setup Steps
 
+### 0. Automated Setup (Recommended)
+
+```bash
+./META/scripts/new-project.sh my-project --git
+```
+
+This scaffolds the project and launches the `meta` pipeline (`project`) by default.
+Use `--no-orchestrate` to follow the manual steps below.
+
 ### 1. Create Project Directory
 
 ```bash

@@ -5,8 +5,10 @@ Short, practical setup for a new project using META.
 ## Fast Start (recommended)
 
 ```bash
-./META/scripts/new-project.sh my-project --git
+./META/scripts/new-project.sh my-project
 ```
+
+This will also launch the `meta` orchestrator by default. Use `--no-orchestrate` to skip.
 
 Optional:
 ```bash

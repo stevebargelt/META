@@ -88,7 +88,9 @@ ln -s AGENTS.md CLAUDE.md
 
 ```bash
 # Bootstrap a project (prints kickoff prompt)
-./META/scripts/new-project.sh my-project --git
+./META/scripts/new-project.sh my-project
+
+# By default this also launches the meta orchestrator (use --no-orchestrate to skip)
 
 # Preselect tool + auto-launch kickoff (if CLI installed)
 ./META/scripts/new-project.sh my-project --tool codex --kickoff

@@ -22,22 +22,30 @@ Pipelines live in `workflows/pipelines/`.
 ## new-project.sh
 
 ```bash
-./scripts/new-project.sh my-project --git
+./scripts/new-project.sh my-project
 ```
 
 Creates a project in `~/code`, writes a `KICKOFF.md`, and prints the kickoff prompt.
 Also creates `AGENTS.md` (placeholder) and a `CLAUDE.md` symlink.
 The kickoff flow will overwrite `AGENTS.md` and create `docs/PRD.md`.
 
+By default, this also launches the `meta` orchestrator pipeline (`project`).
+Use `--no-orchestrate` to keep the original manual kickoff flow.
+
 Options:
 - `--base <path>` set a different base directory
 - `--tool <claude|codex>` set tool defaults
+- `--task <desc>` initial task description for orchestration
+- `--pipeline <name>` pipeline to run (default: `project`)
+- `--unsafe` pass through to `meta` (claude only)
+- `--no-orchestrate` skip auto-orchestration
 - `--kickoff` auto-launch kickoff (alias for `--launch`)
 - `--launch` start the CLI tool with the kickoff prompt as the initial message
 - `--launch-cmd <cmd>` set the CLI command name
 - If `--launch` is used without `--tool`, you must provide `--launch-cmd`.
 - `--open` open `KICKOFF.md` in `$EDITOR` (or print if unset)
-- `--git` initialize git
+- `--git` initialize git (default)
+- `--no-git` skip git init
 
 ## agent.sh
 
