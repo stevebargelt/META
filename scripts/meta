@@ -1,0 +1,927 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  meta run <pipeline> --project <path> --task "description" [--cli claude|codex] [--run-id <id>] [--unsafe] [--dry-run]
+  meta status [--project <path>] [--run-id <id>]
+  meta resume [--project <path>] [--run-id <id>] [--cli claude|codex] [--unsafe]
+  meta abort [--project <path>] [--run-id <id>]
+  meta list
+  meta doctor
+
+Notes:
+  - Pipelines live in workflows/pipelines/*.pipeline
+  - --unsafe adds --dangerously-skip-permissions to claude only
+USAGE
+}
+
+die() {
+  echo "$1" >&2
+  exit 1
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+META_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LIB_DIR="${SCRIPT_DIR}/meta-lib"
+
+# shellcheck source=/dev/null
+source "${LIB_DIR}/workflow.sh"
+# shellcheck source=/dev/null
+source "${LIB_DIR}/tmux.sh"
+# shellcheck source=/dev/null
+source "${LIB_DIR}/handoff.sh"
+# shellcheck source=/dev/null
+source "${LIB_DIR}/agent-run.sh"
+# shellcheck source=/dev/null
+source "${LIB_DIR}/gate.sh"
+# shellcheck source=/dev/null
+source "${LIB_DIR}/status.sh"
+
+resolve_project() {
+  local project="$1"
+  if [[ -z "$project" ]]; then
+    project="$(pwd)"
+  fi
+  if [[ ! -d "$project" ]]; then
+    die "Project path not found: $project"
+  fi
+  (cd "$project" && pwd -P)
+}
+
+resolve_pipeline() {
+  local pipeline="$1"
+  if [[ -z "$pipeline" ]]; then
+    die "Pipeline name required"
+  fi
+
+  if [[ -f "$pipeline" ]]; then
+    printf "%s" "$pipeline"
+    return 0
+  fi
+
+  if [[ "$pipeline" != *.pipeline ]]; then
+    pipeline="${pipeline}.pipeline"
+  fi
+
+  local candidate="${META_DIR}/workflows/pipelines/${pipeline}"
+  if [[ -f "$candidate" ]]; then
+    printf "%s" "$candidate"
+    return 0
+  fi
+
+  die "Pipeline not found: $pipeline"
+}
+
+slugify() {
+  local value="$1"
+  value="${value//[^a-zA-Z0-9_-]/_}"
+  printf "%s" "$value"
+}
+
+generate_run_id() {
+  local ts
+  ts=$(date -u +"%Y-%m-%dT%H-%M-%SZ")
+  local rand
+  rand=$(printf "%04x" $((RANDOM % 65536)))
+  printf "%s-%s" "$ts" "$rand"
+}
+
+step_wait() {
+  local exit_file="$1"
+  local timeout_sec="$2"
+  local start
+  start=$(date +%s)
+
+  while true; do
+    if [[ -f "$exit_file" ]]; then
+      local code
+      code=$(cat "$exit_file" 2>/dev/null || echo "1")
+      if [[ "$code" == "0" ]]; then
+        echo "success"
+      else
+        echo "fail:$code"
+      fi
+      return 0
+    fi
+
+    local now
+    now=$(date +%s)
+    if (( now - start >= timeout_sec )); then
+      echo "timeout"
+      return 0
+    fi
+
+    sleep 5
+  done
+}
+
+step_launch() {
+  local session="$1"
+  local project="$2"
+  local run_id="$3"
+  local step_num="$4"
+  local agent="$5"
+  local cli="$6"
+  local prompt="$7"
+  local handoff_file="$8"
+  local unsafe_flag="$9"
+
+  agent_prepare_step "$project" "$run_id" "$step_num" "$agent" "$cli" "$prompt" "$handoff_file" "$META_DIR" "$unsafe_flag"
+
+  local window_name
+  window_name="step-${step_num}-${agent}"
+
+  rm -f "$AGENT_EXIT_FILE" >/dev/null 2>&1 || true
+  if [[ "$handoff_file" == *".handoff-step-"* ]]; then
+    rm -f "$project/.meta/steps/$run_id/step-${step_num}.merged" >/dev/null 2>&1 || true
+  fi
+
+  tmux_new_window "$session" "$window_name" "bash \"$AGENT_RUN_FILE\""
+}
+
+run_step_serial() {
+  local session="$1"
+  local project="$2"
+  local run_id="$3"
+  local step_num="$4"
+  local agent="$5"
+  local cli="$6"
+  local prompt="$7"
+  local handoff_file="$8"
+  local timeout_min="$9"
+  local unsafe_flag="${10}"
+  local state_file="${11}"
+
+  while true; do
+    state_set "$state_file" "current_step" "$step_num"
+    state_set "$state_file" "step_${step_num}" "running"
+
+    step_launch "$session" "$project" "$run_id" "$step_num" "$agent" "$cli" "$prompt" "$handoff_file" "$unsafe_flag"
+
+    local wait_result
+    wait_result=$(step_wait "$AGENT_EXIT_FILE" "$((timeout_min * 60))")
+
+    if [[ "$wait_result" == "success" ]]; then
+      state_set "$state_file" "step_${step_num}" "done"
+      echo "Step ${step_num} completed successfully."
+      return 0
+    fi
+
+    state_set "$state_file" "step_${step_num}" "failed"
+
+    local message
+    if [[ "$wait_result" == "timeout" ]]; then
+      message="Step ${step_num} (${agent}) timed out."
+    else
+      message="Step ${step_num} (${agent}) failed (exit ${wait_result#fail:})."
+    fi
+
+    local decision
+    decision=$(error_prompt "$message")
+
+    case "$decision" in
+      retry)
+        rm -f "$AGENT_EXIT_FILE" >/dev/null 2>&1 || true
+        ;;
+      skip)
+        state_set "$state_file" "step_${step_num}" "skipped"
+        echo "Step ${step_num} skipped."
+        return 0
+        ;;
+      abort)
+        echo "Aborting pipeline."
+        return 1
+        ;;
+    esac
+  done
+}
+
+control_run() {
+  local project=""
+  local pipeline=""
+  local run_id=""
+  local default_cli=""
+  local unsafe=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project)
+        project="$2"
+        shift 2
+        ;;
+      --pipeline)
+        pipeline="$2"
+        shift 2
+        ;;
+      --run-id)
+        run_id="$2"
+        shift 2
+        ;;
+      --cli)
+        default_cli="$2"
+        shift 2
+        ;;
+      --unsafe)
+        unsafe=true
+        shift
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+
+  project=$(resolve_project "$project")
+  pipeline=$(resolve_pipeline "$pipeline")
+  [[ -z "$run_id" ]] && die "Run ID required for control"
+
+  workflow_parse "$pipeline"
+
+  local pipeline_name
+  pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
+
+  local state_file="$project/.meta/state.${run_id}"
+  if [[ ! -f "$state_file" ]]; then
+    die "State file not found: $state_file"
+  fi
+
+  trap 'echo "Interrupted. State preserved."; state_set "$state_file" "status" "stopped"; exit 130' INT TERM
+  state_set "$state_file" "status" "running"
+
+  local session
+  session=$(state_get "$state_file" "session" || true)
+
+  local unsafe_flag=""
+  if [[ "$unsafe" == true ]]; then
+    unsafe_flag="--dangerously-skip-permissions"
+  fi
+
+  echo "Running pipeline: ${pipeline_name}"
+  echo "Project: ${project}"
+  echo "Run ID: ${run_id}"
+  echo ""
+
+  local idx=1
+  while [[ "$idx" -le "$WF_STEP_COUNT" ]]; do
+    local status
+    status=$(state_get "$state_file" "step_${idx}" || echo "pending")
+
+    if [[ "$status" == "done" || "$status" == "skipped" ]]; then
+      idx=$((idx + 1))
+      continue
+    fi
+
+    local group
+    group="${WF_STEP_GROUP[$idx]}"
+
+    if [[ -n "$group" ]]; then
+      local group_start=$idx
+      local group_end=$idx
+      while [[ "$group_end" -le "$WF_STEP_COUNT" ]]; do
+        if [[ "${WF_STEP_GROUP[$group_end]}" == "$group" ]]; then
+          group_end=$((group_end + 1))
+        else
+          break
+        fi
+      done
+      group_end=$((group_end - 1))
+
+      echo "Running parallel group ${group} (steps ${group_start}-${group_end})"
+
+      local launched_steps=()
+      local j
+      for ((j=group_start; j<=group_end; j++)); do
+        local step_status
+        step_status=$(state_get "$state_file" "step_${j}" || echo "pending")
+        if [[ "$step_status" == "done" || "$step_status" == "skipped" ]]; then
+          continue
+        fi
+
+        local agent
+        agent="${WF_STEP_AGENT[$j]}"
+        local cli
+        cli="${WF_STEP_CLI[$j]}"
+        if [[ -n "$default_cli" ]]; then
+          cli="$default_cli"
+        fi
+        if [[ -z "$cli" || "$cli" == "-" ]]; then
+          cli="claude"
+        fi
+
+        local prompt
+        prompt="${WF_STEP_PROMPT[$j]}"
+        local timeout_min
+        timeout_min="${WF_STEP_TIMEOUT[$j]}"
+
+        local handoff_file
+        handoff_file="$(handoff_step_file "$project" "$j")"
+
+        state_set "$state_file" "current_step" "$j"
+        state_set "$state_file" "step_${j}" "running"
+
+        step_launch "$session" "$project" "$run_id" "$j" "$agent" "$cli" "$prompt" "$handoff_file" "$unsafe_flag"
+        launched_steps+=("$j")
+      done
+
+      local failed_steps=()
+      local completed_steps=()
+      local step
+      for step in "${launched_steps[@]}"; do
+        local timeout_min
+        timeout_min="${WF_STEP_TIMEOUT[$step]}"
+
+        local wait_result
+        wait_result=$(step_wait "$project/.meta/steps/$run_id/step-${step}.exit" "$((timeout_min * 60))")
+
+        if [[ "$wait_result" == "success" ]]; then
+          state_set "$state_file" "step_${step}" "done"
+          completed_steps+=("$step")
+        else
+          state_set "$state_file" "step_${step}" "failed"
+          failed_steps+=("${step}:${wait_result}")
+        fi
+      done
+
+      local failed_entry
+      for failed_entry in "${failed_steps[@]}"; do
+        local step_num="${failed_entry%%:*}"
+        local reason="${failed_entry#*:}"
+        local agent
+        agent="${WF_STEP_AGENT[$step_num]}"
+
+        local message
+        if [[ "$reason" == "timeout" ]]; then
+          message="Step ${step_num} (${agent}) timed out."
+        else
+          message="Step ${step_num} (${agent}) failed (exit ${reason#fail:})."
+        fi
+
+        local decision
+        decision=$(error_prompt "$message")
+
+        case "$decision" in
+          retry)
+            local cli
+            cli="${WF_STEP_CLI[$step_num]}"
+            if [[ -n "$default_cli" ]]; then
+              cli="$default_cli"
+            fi
+            if [[ -z "$cli" || "$cli" == "-" ]]; then
+              cli="claude"
+            fi
+
+            local prompt
+            prompt="${WF_STEP_PROMPT[$step_num]}"
+            local timeout_min
+            timeout_min="${WF_STEP_TIMEOUT[$step_num]}"
+            local handoff_file
+            handoff_file="$(handoff_step_file "$project" "$step_num")"
+
+            if ! run_step_serial "$session" "$project" "$run_id" "$step_num" "$agent" "$cli" "$prompt" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
+              return 1
+            fi
+            completed_steps+=("$step_num")
+            ;;
+          skip)
+            state_set "$state_file" "step_${step_num}" "skipped"
+            ;;
+          abort)
+            echo "Aborting pipeline."
+            return 1
+            ;;
+        esac
+      done
+
+      local merged_step
+      for merged_step in "${completed_steps[@]}"; do
+        local agent
+        agent="${WF_STEP_AGENT[$merged_step]}"
+        handoff_merge_step "$project" "$run_id" "$merged_step" "$agent"
+      done
+
+      local gate_step
+      for gate_step in "${completed_steps[@]}"; do
+        if [[ "${WF_STEP_GATE[$gate_step]}" == "gate" ]]; then
+          local agent
+          agent="${WF_STEP_AGENT[$gate_step]}"
+          local decision
+          decision=$(gate_prompt "QUALITY GATE after step ${gate_step} (${agent})")
+
+          case "$decision" in
+            approve)
+              ;;
+            retry)
+              local cli
+              cli="${WF_STEP_CLI[$gate_step]}"
+              if [[ -n "$default_cli" ]]; then
+                cli="$default_cli"
+              fi
+              if [[ -z "$cli" || "$cli" == "-" ]]; then
+                cli="claude"
+              fi
+
+              local prompt
+              prompt="${WF_STEP_PROMPT[$gate_step]}"
+              local timeout_min
+              timeout_min="${WF_STEP_TIMEOUT[$gate_step]}"
+              local handoff_file
+              handoff_file="$(handoff_step_file "$project" "$gate_step")"
+
+              if ! run_step_serial "$session" "$project" "$run_id" "$gate_step" "$agent" "$cli" "$prompt" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
+                return 1
+              fi
+              handoff_merge_step "$project" "$run_id" "$gate_step" "$agent"
+              ;;
+            skip)
+              state_set "$state_file" "step_${gate_step}" "skipped"
+              ;;
+            abort)
+              echo "Aborting pipeline."
+              return 1
+              ;;
+          esac
+        fi
+      done
+
+      idx=$((group_end + 1))
+      continue
+    fi
+
+    local agent
+    agent="${WF_STEP_AGENT[$idx]}"
+    local cli
+    cli="${WF_STEP_CLI[$idx]}"
+    if [[ -n "$default_cli" ]]; then
+      cli="$default_cli"
+    fi
+    if [[ -z "$cli" || "$cli" == "-" ]]; then
+      cli="claude"
+    fi
+
+    local prompt
+    prompt="${WF_STEP_PROMPT[$idx]}"
+    local timeout_min
+    timeout_min="${WF_STEP_TIMEOUT[$idx]}"
+
+    local handoff_file="$project/.handoff.md"
+
+    if ! run_step_serial "$session" "$project" "$run_id" "$idx" "$agent" "$cli" "$prompt" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
+      return 1
+    fi
+
+    if [[ "${WF_STEP_GATE[$idx]}" == "gate" ]]; then
+      local decision
+      decision=$(gate_prompt "QUALITY GATE after step ${idx} (${agent})")
+
+      case "$decision" in
+        approve)
+          ;;
+        retry)
+          if ! run_step_serial "$session" "$project" "$run_id" "$idx" "$agent" "$cli" "$prompt" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
+            return 1
+          fi
+          ;;
+        skip)
+          state_set "$state_file" "step_${idx}" "skipped"
+          ;;
+        abort)
+          echo "Aborting pipeline."
+          return 1
+          ;;
+      esac
+    fi
+
+    idx=$((idx + 1))
+  done
+
+  state_set "$state_file" "current_step" "$WF_STEP_COUNT"
+  state_set "$state_file" "status" "complete"
+  echo ""
+  echo "Pipeline complete."
+}
+
+meta_run() {
+  local pipeline="$1"
+  shift
+
+  local project=""
+  local task=""
+  local default_cli=""
+  local run_id=""
+  local unsafe=false
+  local dry_run=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project)
+        project="$2"
+        shift 2
+        ;;
+      --task)
+        task="$2"
+        shift 2
+        ;;
+      --cli)
+        default_cli="$2"
+        shift 2
+        ;;
+      --run-id)
+        run_id="$2"
+        shift 2
+        ;;
+      --unsafe)
+        unsafe=true
+        shift
+        ;;
+      --dry-run)
+        dry_run=true
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        die "Unknown option: $1"
+        ;;
+    esac
+  done
+
+  [[ -z "$task" ]] && die "--task is required"
+
+  project=$(resolve_project "$project")
+  pipeline=$(resolve_pipeline "$pipeline")
+
+  workflow_parse "$pipeline"
+
+  local pipeline_name
+  pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
+
+  if [[ -z "$run_id" ]]; then
+    run_id=$(generate_run_id)
+  fi
+
+  local project_base
+  project_base=$(basename "$project")
+  local session
+  session="meta-${project_base}-${run_id}"
+  session=$(slugify "$session")
+
+  if [[ "$dry_run" == true ]]; then
+    echo "Pipeline: ${pipeline_name}"
+    echo "Project: ${project}"
+    echo "Run ID: ${run_id}"
+    echo ""
+
+    local idx
+    for ((idx=1; idx<=WF_STEP_COUNT; idx++)); do
+      local agent
+      agent="${WF_STEP_AGENT[$idx]}"
+      local cli
+      cli="${WF_STEP_CLI[$idx]}"
+      if [[ -n "$default_cli" ]]; then
+        cli="$default_cli"
+      fi
+      if [[ -z "$cli" || "$cli" == "-" ]]; then
+        cli="claude"
+      fi
+      echo "${idx}. ${agent} (${cli}) gate=${WF_STEP_GATE[$idx]} group=${WF_STEP_GROUP[$idx]:--} timeout=${WF_STEP_TIMEOUT[$idx]}"
+      echo "   ${WF_STEP_PROMPT[$idx]}"
+    done
+    exit 0
+  fi
+
+  tmux_require
+
+  local meta_dir="$project/.meta"
+  mkdir -p "$meta_dir/steps/$run_id"
+
+  handoff_init "$project" "$task" "$run_id" "$pipeline_name"
+
+  local state_file="$meta_dir/state.${run_id}"
+  state_set "$state_file" "pipeline" "$pipeline_name"
+  state_set "$state_file" "pipeline_file" "$pipeline"
+  state_set "$state_file" "session" "$session"
+  state_set "$state_file" "started" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  state_set "$state_file" "run_id" "$run_id"
+  state_set "$state_file" "current_step" "0"
+
+  local idx
+  for ((idx=1; idx<=WF_STEP_COUNT; idx++)); do
+    state_set "$state_file" "step_${idx}" "pending"
+  done
+
+  local control_flags=""
+  if [[ -n "$default_cli" ]]; then
+    control_flags+=" --cli \"$default_cli\""
+  fi
+  if [[ "$unsafe" == true ]]; then
+    control_flags+=" --unsafe"
+  fi
+
+  local control_script="$meta_dir/steps/$run_id/control.run.sh"
+  cat > "$control_script" <<EOF_CTRL
+#!/usr/bin/env bash
+set -euo pipefail
+"$SCRIPT_DIR/meta" --control --project "$project" --pipeline "$pipeline" --run-id "$run_id"${control_flags}
+EOF_CTRL
+  chmod +x "$control_script" >/dev/null 2>&1 || true
+
+  if tmux_session_exists "$session"; then
+    die "Tmux session already exists: $session"
+  fi
+
+  tmux_create_session "$session" "control" "bash \"$control_script\""
+  echo "Created tmux session: $session"
+  tmux_attach "$session"
+}
+
+meta_status() {
+  local project=""
+  local run_id=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project)
+        project="$2"
+        shift 2
+        ;;
+      --run-id)
+        run_id="$2"
+        shift 2
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        die "Unknown option: $1"
+        ;;
+    esac
+  done
+
+  project=$(resolve_project "$project")
+
+  local state_file
+  if [[ -n "$run_id" ]]; then
+    state_file="$project/.meta/state.${run_id}"
+  else
+    state_file=$(state_latest_file "$project" || true)
+  fi
+
+  if [[ -z "$state_file" || ! -f "$state_file" ]]; then
+    die "No state file found for project: $project"
+  fi
+
+  state_print_summary "$state_file"
+}
+
+meta_resume() {
+  local project=""
+  local run_id=""
+  local default_cli=""
+  local unsafe=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project)
+        project="$2"
+        shift 2
+        ;;
+      --run-id)
+        run_id="$2"
+        shift 2
+        ;;
+      --cli)
+        default_cli="$2"
+        shift 2
+        ;;
+      --unsafe)
+        unsafe=true
+        shift
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        die "Unknown option: $1"
+        ;;
+    esac
+  done
+
+  project=$(resolve_project "$project")
+
+  local state_file
+  if [[ -n "$run_id" ]]; then
+    state_file="$project/.meta/state.${run_id}"
+  else
+    state_file=$(state_latest_file "$project" || true)
+  fi
+
+  if [[ -z "$state_file" || ! -f "$state_file" ]]; then
+    die "No state file found for project: $project"
+  fi
+
+  local pipeline
+  pipeline=$(state_get "$state_file" "pipeline_file" || true)
+  if [[ -z "$pipeline" ]]; then
+    die "Pipeline file not recorded in state: $state_file"
+  fi
+
+  local session
+  session=$(state_get "$state_file" "session" || true)
+  if [[ -z "$session" ]]; then
+    die "Session name not recorded in state: $state_file"
+  fi
+
+  run_id=$(state_get "$state_file" "run_id" || true)
+
+  if tmux_session_exists "$session"; then
+    tmux_attach "$session"
+    return 0
+  fi
+
+  tmux_require
+
+  local meta_dir="$project/.meta"
+  local control_flags=""
+  if [[ -n "$default_cli" ]]; then
+    control_flags+=" --cli \"$default_cli\""
+  fi
+  if [[ "$unsafe" == true ]]; then
+    control_flags+=" --unsafe"
+  fi
+
+  local control_script="$meta_dir/steps/$run_id/control.run.sh"
+  cat > "$control_script" <<EOF_CTRL
+#!/usr/bin/env bash
+set -euo pipefail
+"$SCRIPT_DIR/meta" --control --project "$project" --pipeline "$pipeline" --run-id "$run_id"${control_flags}
+EOF_CTRL
+  chmod +x "$control_script" >/dev/null 2>&1 || true
+
+  tmux_create_session "$session" "control" "bash \"$control_script\""
+  tmux_attach "$session"
+}
+
+meta_abort() {
+  local project=""
+  local run_id=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project)
+        project="$2"
+        shift 2
+        ;;
+      --run-id)
+        run_id="$2"
+        shift 2
+        ;;
+      -h|--help)
+        usage
+        exit 0
+        ;;
+      *)
+        die "Unknown option: $1"
+        ;;
+    esac
+  done
+
+  project=$(resolve_project "$project")
+
+  local state_file
+  if [[ -n "$run_id" ]]; then
+    state_file="$project/.meta/state.${run_id}"
+  else
+    state_file=$(state_latest_file "$project" || true)
+  fi
+
+  if [[ -z "$state_file" || ! -f "$state_file" ]]; then
+    die "No state file found for project: $project"
+  fi
+
+  local session
+  session=$(state_get "$state_file" "session" || true)
+  if [[ -n "$session" ]]; then
+    tmux_kill_session "$session"
+  fi
+
+  run_id=$(state_get "$state_file" "run_id" || true)
+
+  if [[ -n "$run_id" ]]; then
+    rm -rf "$project/.meta/steps/$run_id" || true
+  fi
+
+  rm -f "$state_file" || true
+
+  echo "Aborted pipeline run ${run_id}."
+}
+
+meta_list() {
+  local pipeline_dir="$META_DIR/workflows/pipelines"
+  if [[ ! -d "$pipeline_dir" ]]; then
+    die "Pipeline directory not found: $pipeline_dir"
+  fi
+
+  local file
+  for file in "$pipeline_dir"/*.pipeline; do
+    [[ -f "$file" ]] || continue
+    if workflow_parse "$file"; then
+      local name
+      name="${WF_NAME:-$(basename "$file" .pipeline)}"
+      local desc
+      desc="${WF_DESCRIPTION:-}"
+      printf "- %s" "$name"
+      if [[ -n "$desc" ]]; then
+        printf " — %s" "$desc"
+      fi
+      printf "\n"
+    fi
+  done
+}
+
+meta_doctor() {
+  local ok=true
+
+  if ! command -v tmux >/dev/null 2>&1; then
+    echo "tmux: missing"
+    ok=false
+  else
+    echo "tmux: ok"
+  fi
+
+  if command -v claude >/dev/null 2>&1; then
+    echo "claude: ok"
+  else
+    echo "claude: missing"
+  fi
+
+  if command -v codex >/dev/null 2>&1; then
+    echo "codex: ok"
+  else
+    echo "codex: missing"
+  fi
+
+  local pipeline_dir="$META_DIR/workflows/pipelines"
+  local file
+  for file in "$pipeline_dir"/*.pipeline; do
+    [[ -f "$file" ]] || continue
+    if workflow_parse "$file"; then
+      echo "pipeline: $(basename "$file") ok"
+    else
+      echo "pipeline: $(basename "$file") invalid"
+      ok=false
+    fi
+  done
+
+  if [[ "$ok" == false ]]; then
+    exit 1
+  fi
+}
+
+main() {
+  if [[ $# -lt 1 ]]; then
+    usage
+    exit 1
+  fi
+
+  local cmd="$1"
+  shift
+
+  case "$cmd" in
+    run)
+      [[ $# -lt 1 ]] && die "Pipeline name required"
+      meta_run "$@"
+      ;;
+    status)
+      meta_status "$@"
+      ;;
+    resume)
+      meta_resume "$@"
+      ;;
+    abort)
+      meta_abort "$@"
+      ;;
+    list)
+      meta_list
+      ;;
+    doctor)
+      meta_doctor
+      ;;
+    --control)
+      control_run "$@"
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      die "Unknown command: $cmd"
+      ;;
+  esac
+}
+
+main "$@"

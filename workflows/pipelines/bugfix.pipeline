@@ -1,0 +1,8 @@
+name: bugfix
+description: Focused bug fix flow
+timeout_min: 45
+
+# NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+1 | debugger | claude | auto | - | - | Diagnose the root cause from .handoff.md. Update .handoff.md with findings.
+2 | base     | claude | auto | - | - | Implement fix and add regression test. Update .handoff.md with changes.
+3 | reviewer | claude | gate | - | - | Review fix for correctness and security. Update .handoff.md with findings.
