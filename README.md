@@ -43,7 +43,14 @@ META/
 │   ├── new-project.md           # Project setup flow
 │   ├── multi-agent.md           # Agent orchestration
 │   ├── context-reset.md         # Handling long sessions
+│   ├── spec-driven-development.md # Boundary-only SDD
 │   └── model-switching.md       # Moving between models
+│
+├── scripts/                     # Helper scripts
+│   ├── agent.sh                 # Create handoff file for an agent
+│   ├── new-project.sh           # Bootstrap a new project
+│   ├── add-pattern.sh           # Scaffold a pattern file
+│   └── retrospective.sh         # Create dated retrospective
 │
 ├── prompts/                     # Task-specific prompts
 │   ├── code-review.md
@@ -74,6 +81,22 @@ cp ../META/prompts/project-template.md AGENTS.md
 
 # Start coding with AI
 # Reference: ../META/workflows/new-project.md
+```
+
+### Scripts (Optional)
+
+```bash
+# Bootstrap a project (AGENTS.md + PRD + optional git)
+./META/scripts/new-project.sh my-project --git
+
+# Create a handoff file for an agent
+./META/scripts/agent.sh architect --project ~/code/my-project
+
+# Scaffold a new pattern file
+./META/scripts/add-pattern.sh api rest-error-handling
+
+# Create a retrospective file
+./META/scripts/retrospective.sh my-project
 ```
 
 ### Using Agents

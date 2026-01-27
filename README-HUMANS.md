@@ -2,36 +2,26 @@
 
 Short, practical setup for a new project using META.
 
-## 1) Create a project
+## Fast Start (recommended)
+
+```bash
+./META/scripts/new-project.sh my-project --git
+```
+
+Open `~/code/my-project/AGENTS.md` and fill in the basics. Done.
+
+## Manual Start (if you prefer)
 
 ```bash
 cd ~/code
 mkdir my-project && cd my-project
 git init
-```
-
-## 2) Add the agent config (model-agnostic)
-
-```bash
 cp ../META/prompts/project-template.md AGENTS.md
-```
-
-Fill in the basics: purpose, stack, commands, structure (feature-first).
-
-## 3) (Recommended) Create a one-page PRD
-
-```bash
 mkdir -p docs
 cp ../META/prompts/prd-template.md docs/PRD.md
 ```
 
-## 4) Register the project
-
-Add it to `META/project-registry.md`.
-
-## 5) Build
-
-Start coding. Reference `META/patterns/` and `META/workflows/` as needed.
+Add the project to `META/project-registry.md`, then start building.
 
 ---
 
