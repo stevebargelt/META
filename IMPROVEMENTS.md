@@ -66,7 +66,8 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 - [x] Git hygiene checklist prompt
 - [x] Contract stub prompt (OpenAPI preferred) before parallelization
 - [x] Preflight step (tools, permissions, env vars)
-- [ ] Gate prompt shows last 20 log lines for faster approvals
+- [x] Gate prompt shows last 20 log lines for faster approvals
+- [x] Build validation step after parallel merges (in orchestrator.md and project.pipeline)
 - [ ] Artifact checklist step (expected files/paths)
 - [ ] Docs completeness check at final gate (README + PRD + ARCHITECTURE)
 - [ ] Supabase scaffold when selected (migrations folder + README snippet)
@@ -166,6 +167,9 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 | Preflight checklist step | 2026-01-28 | `prompts/preflight-checklist.md`, inserted into pipelines |
 | Observability validation gate | 2026-01-28 | `prompts/observability-validation.md`, gate added to pipelines |
 | Test execution enforcement | 2026-01-28 | `prompts/test-execution.md`, pipeline steps added |
+| Gate prompt with log summary | 2026-01-28 | `scripts/meta-lib/gate.sh` shows last 20 lines before approval prompt |
+| Build validation after parallel merge | 2026-01-28 | `agents/orchestrator.md`, `workflows/pipelines/project.pipeline` |
+| .gitignore quality gate | 2026-01-28 | `scripts/quality-gate.sh` check + `scripts/new-project.sh` scaffold |
 
 ---
 
