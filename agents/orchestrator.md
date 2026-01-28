@@ -280,6 +280,31 @@ Insert reviews at these points:
 4. **After docs** — Documentation reviewed for accuracy
 5. **Before deployment** — Final check via `META/scripts/quality-gate.sh`
 
+## Test Coverage Requirements
+
+Pipelines must include test steps for both backend and frontend:
+
+### Backend Tests
+- Unit tests for services/repositories
+- API integration tests (HTTP layer via supertest or similar)
+- User flow tests for critical paths
+
+### Frontend Tests (Required for React/Vue/Angular apps)
+
+**Critical:** Do not skip frontend testing. Add a dedicated step:
+
+```
+N | tester | auto | - | 20 | Frontend tests: Configure Vitest + Testing Library for client/. Add component tests for key user flows. Test at minimum: form submissions, list rendering, error states. Update .handoff.md with test counts.
+```
+
+Frontend test setup checklist:
+- `@testing-library/react` and `@testing-library/jest-dom` installed
+- `vitest.config.ts` configured with jsdom environment
+- Tests for: user interactions, data display, error handling, loading states
+- Minimum coverage: main pages, forms, and critical components
+
+If frontend tests are skipped, document why in `.handoff.md` (e.g., pure static site, no JS interactions).
+
 ## Decision Points
 
 When orchestrating, decide:
