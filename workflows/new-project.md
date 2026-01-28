@@ -107,6 +107,22 @@ Every project gets a CI pipeline from the start — not after "things are workin
 3. Run through `META/prompts/ci-setup-checklist.md`
 4. Enable branch protection on `main`
 
+### 4d. External Service Setup (If Applicable)
+
+If you depend on Supabase or other services, document setup before feature work:
+
+1. Run through `META/prompts/external-service-setup-checklist.md`
+2. Add `.env.example` with required variables
+3. Add schema/migrations or bootstrap steps
+
+### 4e. Observability Baseline
+
+Before building features, ensure a basic observability plan:
+
+1. Run through `META/prompts/observability-checklist.md`
+2. Use `META/patterns/api/observability-middleware.js` for correlation IDs + logging
+3. Pair with `META/patterns/api/rest-error-handling.ts` to return correlation IDs
+
 ### 5. Architecture Phase (if applicable)
 
 For medium/complex projects, start with architect agent:
@@ -136,6 +152,32 @@ Save this as `ARCHITECTURE.md` in your project.
 **Template available at:**
 `META/patterns/project-structures/ARCHITECTURE-template.md`
 
+### 5b. Contract Stub (Required before parallel work)
+
+If you plan to run parallel workstreams, create a minimal contract stub first:
+
+1. Use `META/prompts/contract-stub.md` (prefer OpenAPI)
+2. Save to `docs/openapi.yaml` (or fallback to `docs/api-routes.md`)
+3. Update `.handoff.md` with the contract stub summary
+
+### 5c. Parallelization Planning (Required for multi-agent runs)
+
+Before implementation starts, decide what can run in parallel and why:
+
+1. Identify independent workstreams (e.g., client vs server)
+2. Assign `PARALLEL_GROUP` labels in the pipeline
+3. If nothing is parallelizable, document the reason in `.handoff.md`
+
+Template for `.handoff.md`:
+
+```markdown
+## Parallelization Decision
+
+**Parallel groups:** [list or "none"]
+**Reason:** [Why parallelism is unsafe or not applicable]
+**Revisit point:** [When to re-evaluate parallelism]
+```
+
 ### 6. Initial Implementation
 
 **Simple project:**
@@ -157,7 +199,7 @@ At key points, use reviewer agent:
 
 Use documenter agent or base agent to create:
 
-- **README.md** — Quick start guide
+- **README.md** — Quick start guide (use `META/prompts/readme-template.md`)
 - **API docs** — If applicable
 - **Architecture docs** — For complex projects
 
@@ -192,6 +234,8 @@ git commit -m "chore: project setup
 
 Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 ```
+
+For ongoing work, use `META/prompts/git-hygiene-checklist.md`.
 
 ## Development Workflow
 

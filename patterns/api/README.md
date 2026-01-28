@@ -43,6 +43,9 @@ Reusable patterns for building APIs (REST, GraphQL, error handling, etc.)
 - Request body validation
 - Query parameter validation
 - File upload validation
+- **`zod-validation-middleware.js`** — Zod schema validation middleware
+  - Validates body/query/params with field-level error details
+  - Normalizes validation failures to a consistent 400 response
 
 ## Usage
 

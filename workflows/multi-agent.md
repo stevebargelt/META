@@ -206,6 +206,8 @@ When tasks are independent:
 - Same codebase area (merge conflicts)
 - Benefits don't justify coordination overhead
 
+**Requirement:** If tasks can run in parallel, assign `PARALLEL_GROUP` labels in the pipeline. If you plan parallel workstreams, create a contract stub first (use `META/prompts/contract-stub.md`, prefer OpenAPI). If not, explicitly justify why in `.handoff.md`.
+
 ## Quality Gates
 
 Insert review checkpoints at these points:
@@ -239,6 +241,16 @@ Insert review checkpoints at these points:
 - Examples work
 - No outdated information
 - Clear and understandable
+
+## Definition of Done (Baseline)
+
+Use these as minimum ship criteria for new projects:
+
+- README exists and follows `META/prompts/readme-template.md`
+- CI pipeline exists and passes (`META/prompts/ci-setup-checklist.md`)
+- Observability baseline implemented (`META/prompts/observability-checklist.md`)
+- External service setup documented if applicable (`META/prompts/external-service-setup-checklist.md`)
+- Git history exists with at least one milestone commit (`META/prompts/git-hygiene-checklist.md`)
 
 ## Context Management in Multi-Agent Workflows
 

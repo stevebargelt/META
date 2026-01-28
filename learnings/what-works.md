@@ -2,7 +2,7 @@
 
 Proven patterns and approaches from real projects. Add to this when you discover something that actually saves time or improves quality.
 
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-01-28
 
 ---
 
@@ -14,6 +14,13 @@ Proven patterns and approaches from real projects. Add to this when you discover
 **Why it works:** Each agent focuses on what it's best at, quality gates catch issues early
 **When to use:** New features, significant changes
 **Source:** [Project name when discovered]
+
+### Tmux Pipeline Orchestration
+
+**Pattern:** Use `meta` CLI to run multi-agent workflows in tmux
+**Why it works:** Clear visibility into each agent, repeatable flow, easy to pause at gates
+**When to use:** Multi-step builds, PRD → architecture → implementation sequences
+**Source:** test-app (2026-01)
 
 ### Single Agent with Context
 
@@ -110,6 +117,13 @@ git commit -m "feat: complete feature"
 **What:** When hitting context limits, summarize what's done and what's next
 **Why it works:** Maintains continuity, reduces token usage
 **Template:** See `workflows/context-reset.md`
+
+### Interactive Kickoff Only
+
+**What:** Make kickoff step interactive; keep build steps non-interactive
+**Why it works:** Collects requirements once; avoids stalled pipelines later
+**When:** Automated multi-agent orchestration
+**Source:** test-app (2026-01)
 
 ---
 

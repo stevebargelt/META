@@ -2,7 +2,7 @@
 
 Anti-patterns and approaches to avoid, learned from real experience.
 
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-01-28
 
 ---
 
@@ -16,6 +16,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Instead:** Use base agent directly
 **Source:** [Project where learned]
 
+### Parallelizable Work Left Sequential
+
+**What:** Building pipelines without `PARALLEL_GROUP`, even when steps are independent
+**Why it fails:** Slower delivery, no concurrency benefit from multi-agent setup
+**Example:** All steps in the pipeline have `PARALLEL_GROUP` set to `-`
+**Instead:** Group independent steps with a shared `PARALLEL_GROUP` label
+**Source:** test-app (2026-01)
+
 ### Under-Specified Handoffs
 
 **What:** Passing work to next agent without clear task definition
@@ -23,6 +31,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Example:** "Now review this" without context on what to look for
 **Instead:** Use handoff format from `agents/orchestrator.md`
 **Source:** [Project where learned]
+
+### Inventing New Agent Names
+
+**What:** Orchestrator generates agent names that don't exist in `META/agents/`
+**Why it fails:** Pipeline crashes when agent definition file is missing
+**Example:** `test-automation-specialist` in generated pipeline
+**Instead:** Restrict to existing agent names only
+**Source:** test-app (2026-01)
 
 ---
 
@@ -90,6 +106,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Instead:** Commit working states, use git stash for WIP
 **Source:** [Project where learned]
 
+### Building Without Commits
+
+**What:** Completing a project with zero local commits or pushes
+**Why it fails:** No history, no rollback points, no visibility into progress
+**Example:** A full build with no git commits
+**Instead:** Commit early/often and push at stable milestones
+**Source:** test-app (2026-01)
+
 ### Skipping Tests to "Save Time"
 
 **What:** Not writing tests for "simple" code
@@ -97,6 +121,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Example:** [Specific bug that could have been caught]
 **Instead:** Write tests, especially for business logic
 **Source:** [Project where learned]
+
+### Running Tests in Read-Only Sandboxes
+
+**What:** Running test suites in a sandbox that blocks temp dirs or node_modules writes
+**Why it fails:** Tools like Vitest create temp files; tests crash on EPERM
+**Example:** `EPERM: operation not permitted, mkdir ... node_modules/.vite-temp`
+**Instead:** Use workspace-write or allow temp paths for test runs
+**Source:** test-app (2026-01)
 
 ---
 
@@ -150,6 +182,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Instead:** Review anything touching sensitive data or auth
 **Source:** [Project where learned]
 
+### Ignoring Observability Requirements
+
+**What:** Skipping logging/traceability even when explicitly requested
+**Why it fails:** Hard to debug, no audit trail, lower ops confidence
+**Example:** App shipped without baseline tracing/logging
+**Instead:** Implement observability in the base API stack (correlation IDs, structured logs, tracing hooks)
+**Source:** test-app (2026-01)
+
 ### Fixing Symptoms, Not Root Cause
 
 **What:** Patching the error without understanding why it happens
@@ -169,6 +209,22 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Example:** [Specific case]
 **Instead:** Write docs after implementation stabilizes
 **Source:** [Project where learned]
+
+### Skipping README for New Project
+
+**What:** Shipping a project without a `README.md`
+**Why it fails:** No onboarding path, unclear run steps, unclear scope
+**Example:** App delivered with no README
+**Instead:** Require a minimal README (run instructions, env vars, scripts)
+**Source:** test-app (2026-01)
+
+### Missing External Service Setup Steps
+
+**What:** Relying on external services without setup instructions or bootstrap files
+**Why it fails:** Users cannot run or validate the app
+**Example:** Supabase required but no schema/setup steps provided
+**Instead:** Provide setup docs and a bootstrap path (SQL, migrations, or CLI steps)
+**Source:** test-app (2026-01)
 
 ### Documentation That Duplicates Code
 
@@ -201,6 +257,14 @@ counter++
 **Example:** Deploy script that fails without output
 **Instead:** Add logging, error messages, exit codes
 **Source:** [Project where learned]
+
+### No CI/CD Pipeline
+
+**What:** Shipping a project without any CI/CD automation
+**Why it fails:** No repeatable build/test/deploy path, quality gates ignored
+**Example:** Manual-only build with no CI workflows
+**Instead:** Add at least one CI pipeline for lint/test/build
+**Source:** test-app (2026-01)
 
 ---
 

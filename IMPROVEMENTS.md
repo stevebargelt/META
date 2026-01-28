@@ -3,7 +3,7 @@
 Tracking recommendations from the January 2026 assessment. Update status as items are completed.
 
 **Assessment Date:** 2026-01-26
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-01-28
 
 ---
 
@@ -18,25 +18,25 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 ## Immediate Priority (High-Value, Low-Effort)
 
 ### 1. Validate with One Real Project
-- [ ] Pick one project (LED Scoreboard, MeatGeek, or MycoGeek)
-- [ ] Ensure AGENTS.md inherits from `../META/agents/base.md` and CLAUDE.md is symlinked
-- [ ] Follow `workflows/new-project.md` end-to-end
-- [ ] Complete a retrospective using `learnings/retrospective-template.md`
-- [ ] Extract at least 3 patterns to `patterns/`
+- [x] Pick one project (test-app)
+- [x] Ensure AGENTS.md inherits from `../META/agents/base.md` and CLAUDE.md is symlinked
+- [x] Follow `workflows/new-project.md` end-to-end
+- [x] Complete a retrospective using `learnings/retrospective-template.md`
+- [x] Extract at least 3 patterns to `patterns/`
 - [ ] Update `project-registry.md` with "Active" status
 
 **Why:** Validates the entire system. Creates the flywheel for compounding.
 
 ### 2. Populate Pattern Library from Existing Code
-- [ ] API error handling pattern → `patterns/api/`
-- [ ] Testing setup pattern → `patterns/testing/`
+- [x] API error handling pattern → `patterns/api/`
+- [x] Testing setup pattern → `patterns/testing/`
 - [x] Deployment/CI pattern → `patterns/deployment/` (ci-pipeline-node.md, quality-gates.md, ci-setup-checklist)
-- [ ] At least 2 more auth patterns → `patterns/auth/`
+- [~] At least 2 more auth patterns → `patterns/auth/` (1/2 done: supabase-jwt-middleware)
 - [x] Document React Native patterns properly (rn-mf-contracts, rn-mf-host-loader)
 
 **Target:** 10+ real patterns extracted from existing projects
 
-**Current count:** Proven: 1 (jwt-refresh-rotation.md) | Templates: 3 (rn-mf-contracts, rn-mf-host-loader, feature-first)
+**Current count:** Proven: 4 (jwt-refresh-rotation, supabase-jwt-middleware, zod-validation-middleware, supertest-in-memory) | Templates: 3 (rn-mf-contracts, rn-mf-host-loader, feature-first)
 
 ### 3. Add Tester Agent
 - [x] Create `agents/tester.md`
@@ -46,6 +46,19 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 - [x] Add to `workflows/multi-agent.md` workflows
 
 **Location:** `agents/tester.md`
+
+### 4. Pipeline Quality Baselines
+- [x] Definition-of-done checklist prompt + gated steps in pipelines
+- [x] External services setup step early in `project` pipeline
+- [x] README template + `.env.example` + CI stub in `new-project.sh`
+- [x] Observability checklist prompt
+- [x] Git hygiene checklist prompt
+- [x] Contract stub prompt (OpenAPI preferred) before parallelization
+- [ ] Preflight step (tools, permissions, env vars)
+- [ ] Gate prompt shows last 20 log lines for faster approvals
+- [ ] Artifact checklist step (expected files/paths)
+- [ ] Docs completeness check at final gate (README + PRD + ARCHITECTURE)
+- [ ] Supabase scaffold when selected (migrations folder + README snippet)
 
 ---
 
@@ -76,7 +89,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 - [x] Create streamlined alternative — unified `.handoff.md` template at `prompts/handoff-template.md`
 - [x] Consolidate 4 different handoff templates into one unified spec
 - [x] Add context budget system at `workflows/context-budget.md`
-- [ ] Test simplified format on real handoff
+- [x] Test simplified format on real handoff (test-app)
 
 ### 8. Add Stack-Specific Security Checklists
 - [ ] `patterns/security/node-security-checklist.md`
@@ -87,6 +100,11 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 ### 9. Add Contract Tests Template
 - [ ] Create a minimal contract test template for host/remotes
 - [ ] Require contract tests in parallel workstreams
+
+### 10. Pipeline Ergonomics
+- [ ] Auto-commit checkpoints option for key steps
+- [ ] Contract validation step (OpenAPI lint) when `docs/openapi.yaml` exists
+- [ ] Model budget guard (warn when step exceeds expected duration)
 
 ### 10. Add OTA Release + Rollback Checklist
 - [ ] Document host/remote compatibility checks
@@ -127,6 +145,11 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 | Feature-first structure | 2026-01-27 | `patterns/project-structures/feature-first.md` |
 | RN MF templates | 2026-01-27 | `rn-mf-contracts.md`, `rn-mf-host-loader.md` |
 | Meta CLI orchestration | 2026-01-27 | `scripts/meta`, `workflows/pipelines/*` |
+| Definition-of-done baseline | 2026-01-28 | `prompts/definition-of-done-checklist.md`, gates added to pipelines |
+| External service setup step | 2026-01-28 | `workflows/pipelines/project.pipeline` step 2 |
+| Contract stub prompt (OpenAPI) | 2026-01-28 | `prompts/contract-stub.md`, orchestrator + workflow requirements |
+| New-project scaffolding baselines | 2026-01-28 | README template, `.env.example`, CI stub in `scripts/new-project.sh` |
+| Pipeline timing logs | 2026-01-28 | step + pipeline timestamps and durations in `scripts/meta*` |
 
 ---
 

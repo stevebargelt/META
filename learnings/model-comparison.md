@@ -2,7 +2,7 @@
 
 Track which AI models excel at which tasks based on real project experience.
 
-**Last Updated:** 2026-01-26
+**Last Updated:** 2026-01-28
 
 ## Model Overview
 
@@ -122,9 +122,9 @@ See `workflows/model-switching.md` for detailed process.
 
 ## Project-Specific Findings
 
-### [Project Name] - [Date]
-- [Insight about model performance]
-- [What worked, what didn't]
+### test-app - 2026-01-27
+- **Claude** excelled at PRD/architecture planning but hit usage limits mid‑pipeline.
+- **Codex** completed implementation/testing steps after switching, but required sandbox write access for tests (Vitest temp dirs).
 
 *Add new entries here as you complete projects*
 

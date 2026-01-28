@@ -11,6 +11,9 @@ Reusable patterns for testing strategies, fixtures, and test setup.
 - Test database setup/teardown
 - Mock service setup
 - Test fixtures and factories
+- **`supertest-in-memory.js`** — Supertest adapter without binding to a port
+  - Routes requests directly to an Express handler
+  - Useful for sandboxed or fast unit-style API tests
 
 ### Testing Strategies
 *(Add patterns here as you create them)*

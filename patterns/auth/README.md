@@ -10,6 +10,10 @@ Reusable patterns for auth systems.
   - Prevents token replay attacks
   - Secure token rotation on each use
   - Database schema and implementation notes
+- **`supabase-jwt-middleware.js`** — Supabase JWT verification middleware
+  - Validates Bearer tokens via `supabase.auth.getUser`
+  - Normalizes failures to 401/500 with clear error codes
+  - Attaches `userId` and `userEmail` to the request
 
 ### OAuth/Social Login
 *(Add patterns here as you create them)*
