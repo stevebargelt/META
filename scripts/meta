@@ -793,11 +793,12 @@ control_run() {
       if [[ "${META_AUTO_COMMIT:-1}" == "1" ]]; then
         if command -v git >/dev/null 2>&1 && git -C "$project" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
           if [[ -n "$(git -C "$project" status --porcelain 2>/dev/null)" ]]; then
-            git -C "$project" add -A && git -C "$project" commit -m "meta: parallel group ${group_label} complete" --no-verify 2>/dev/null || true
+            git -C "$project" add -A && git -C "$project" commit -m "meta: parallel group ${group} complete" --no-verify 2>/dev/null || true
           fi
         fi
       fi
 
+      if [[ ${#completed_steps[@]} -gt 0 ]]; then
       local gate_step
       for gate_step in "${completed_steps[@]}"; do
         if [[ "${WF_STEP_GATE[$gate_step]}" == "gate" ]]; then
@@ -842,6 +843,7 @@ control_run() {
           esac
         fi
       done
+      fi
 
       local switch_result
       if pipeline_switch "$project" "$run_id" "$state_file"; then
