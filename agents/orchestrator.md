@@ -138,6 +138,26 @@ When tasks can run simultaneously:
 **Sync point:** All complete before moving to review
 ```
 
+## Pipeline Parallelization Requirement
+
+When generating a pipeline, you must:
+
+- Identify independent tasks and assign a shared `PARALLEL_GROUP` label
+- Default assumption: client and server workstreams can run in parallel after architecture
+- If any parallelism is planned, insert a **contract stub step** before parallel groups using `META/prompts/contract-stub.md` (prefer OpenAPI).
+- If no parallelism is safe, explicitly state why in `.handoff.md` and add the template block below
+- Ensure groups are scoped so agents do not edit the same files concurrently
+
+If no parallelism is possible, add this to `.handoff.md`:
+
+```markdown
+## Parallelization Decision
+
+**Parallel groups:** none
+**Reason:** [Why parallelism is unsafe or not applicable]
+**Revisit point:** [When to re-evaluate parallelism]
+```
+
 ## Parallelization Playbook
 
 Use this when you want multiple agents or teams in parallel.
@@ -279,6 +299,7 @@ When orchestrating, decide:
 - Don't orchestrate when one agent would suffice
 - Don't pass unnecessary context between agents
 - Don't create dependencies where parallel work is possible
+- Don't leave `PARALLEL_GROUP` empty when tasks are independent
 - Don't skip quality gates to save time
 - Don't hand off work without clear task definition
 

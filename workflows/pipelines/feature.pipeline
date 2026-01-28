@@ -9,3 +9,4 @@ timeout_min: 60
 4 | base            | - | auto | - | -  | Implement feature, make tests pass, update .handoff.md with changes.
 5 | reviewer        | - | gate | - | -  | Review all changes for quality and security. Update .handoff.md with findings.
 6 | documenter      | - | auto | - | -  | Update documentation and summarize changes in .handoff.md.
+7 | base            | - | gate | - | -  | Run META/prompts/definition-of-done-checklist.md. Fix safe gaps (README, CI stub, .env.example) or list blockers in .handoff.md.

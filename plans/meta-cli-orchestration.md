@@ -30,6 +30,8 @@ Parallel steps share a `PARALLEL_GROUP` value. Pipeline waits for all in group b
 Notes:
 - `timeout_min` sets the pipeline default; `TIMEOUT_MIN` overrides per step (`-` uses default).
 - Escape literal pipes in `PROMPT` as `\|`.
+- If parallelism is possible, `PARALLEL_GROUP` must be set; otherwise the orchestrator must explain why in `.handoff.md`.
+- If parallelism is planned, add a contract stub step first (use `META/prompts/contract-stub.md`, prefer OpenAPI).
 
 ### File List
 

@@ -8,3 +8,4 @@ timeout_min: 90
 3 | tester    | - | auto | A | - | Identify coverage gaps and propose tests. Write to .handoff-step-3.md.
 4 | base      | - | auto | - | - | Execute refactor and update tests. Update .handoff.md.
 5 | reviewer  | - | gate | - | - | Review refactor for regressions and quality. Update .handoff.md.
+6 | base      | - | gate | - | - | Run META/prompts/definition-of-done-checklist.md. Note missing baseline items in .handoff.md (fix only if safe and in scope).
