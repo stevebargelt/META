@@ -1,20 +1,12 @@
 # Code Review Prompt
 
-Cross-model prompt for structured code review.
+Structured code review framework for any agent.
 
-## Usage
+## Goal
 
-Include this in your request when you want a thorough code review:
+Identify security, correctness, performance, and maintainability issues. Report findings by severity.
 
-```
-Review this code using the structure in META/prompts/code-review.md
-
-[paste code or reference file]
-```
-
----
-
-## Review Structure
+## Checks
 
 ### 1. Security
 - Input validation
@@ -49,32 +41,29 @@ Review this code using the structure in META/prompts/code-review.md
 - Testability concerns
 - Missing edge case tests
 
----
-
-## Output Format
-
-```markdown
-## Summary
-[One paragraph overview]
-
-## Critical Issues
-[Must fix before merge]
-
-## Recommendations  
-[Should fix, not blocking]
-
-## Nitpicks
-[Style/preference, optional]
-
-## What's Good
-[Positive patterns worth noting]
-```
-
----
-
 ## Severity Levels
 
-- 🔴 **Critical** — Security risk, data loss, or crash
-- 🟠 **High** — Bug or significant maintainability issue
-- 🟡 **Medium** — Should improve, not urgent
-- 🟢 **Low** — Nitpick or style preference
+- **Critical** — Security risk, data loss, or crash
+- **High** — Bug or significant maintainability issue
+- **Medium** — Should improve, not urgent
+- **Low** — Nitpick or style preference
+
+## Output Template
+
+```markdown
+## Code Review
+
+**Summary:** [One paragraph overview]
+
+**Critical Issues:**
+- [Must fix before merge]
+
+**Recommendations:**
+- [Should fix, not blocking]
+
+**Nitpicks:**
+- [Style/preference, optional]
+
+**What's Good:**
+- [Positive patterns worth noting]
+```

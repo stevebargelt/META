@@ -1,6 +1,6 @@
 # Test Execution Prompt
 
-Use this before final approval to ensure tests are actually run.
+Run the project's test suite and record results before final approval.
 
 ## Goal
 
@@ -12,7 +12,7 @@ Run the project’s real test commands and record results.
 2) Run the primary test commands for each package (server/client if applicable).
 3) Record pass/fail and any failures.
 
-## Output Template (paste into .handoff.md)
+## Output Template
 
 ```markdown
 ## Test Execution

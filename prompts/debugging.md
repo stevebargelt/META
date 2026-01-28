@@ -1,100 +1,59 @@
 # Debugging Prompt
 
-Cross-model prompt for systematic debugging.
+Systematic debugging framework for structured problem-solving.
 
-## Usage
+## Goal
 
-```
-Help me debug using the approach in META/prompts/debugging.md
+Identify root cause through systematic isolation. Fix the cause, not the symptom.
 
-[describe the problem]
-```
+## Steps
 
----
+### 1. Gather Information
+- **Expected behavior** — What should happen?
+- **Actual behavior** — What's happening instead?
+- **Reproduction steps** — How to trigger it?
+- **Environment** — OS, versions, config?
+- **Recent changes** — What changed before it broke?
 
-## Information Gathering
-
-Before diving in, establish:
-
-1. **Expected behavior** — What should happen?
-2. **Actual behavior** — What's happening instead?
-3. **Reproduction steps** — How to trigger it?
-4. **Environment** — OS, versions, config?
-5. **Recent changes** — What changed before it broke?
-
----
-
-## Systematic Approach
-
-### 1. Reproduce
+### 2. Reproduce
 - Can you consistently reproduce it?
 - What's the minimum reproduction case?
 - Does it happen in all environments?
 
-### 2. Isolate
+### 3. Isolate
 - Where in the stack does it fail?
 - What's the last known good state?
 - Binary search through code/commits if needed
 
-### 3. Hypothesize
+### 4. Hypothesize
 - Form a theory about root cause
 - What evidence would confirm/deny it?
 
-### 4. Test
+### 5. Test
 - Add logging/breakpoints to verify hypothesis
 - Change one thing at a time
 - Document what you tried
 
-### 5. Fix
+### 6. Fix
 - Address root cause, not symptoms
 - Consider similar bugs elsewhere
 - Add test to prevent regression
 
----
-
 ## Common Patterns
 
-### "It works on my machine"
-- Environment differences
-- Config/secrets differences  
-- Dependency version mismatches
-- File path differences
+- **"It works on my machine"** — Environment, config, dependency, or path differences
+- **"It worked yesterday"** — Check git history, dependency updates, infra changes, data changes
+- **"It works sometimes"** — Race conditions, resource exhaustion, external flakiness, caching
+- **"No error, just wrong"** — Silent failures, wrong data in, wrong assumptions, off-by-one
 
-### "It worked yesterday"
-- Check git history
-- Check dependency updates
-- Check infrastructure changes
-- Check data changes
-
-### "It works sometimes"
-- Race conditions
-- Resource exhaustion
-- External service flakiness
-- Caching issues
-
-### "No error, just wrong"
-- Silent failures being caught
-- Wrong data going in
-- Correct code, wrong assumptions
-- Off-by-one errors
-
----
-
-## Output Format
+## Output Template
 
 ```markdown
-## Problem Summary
-[Restate the issue clearly]
+## Debug Report
 
-## Root Cause
-[What's actually wrong]
-
-## Evidence
-[How we know this is the cause]
-
-## Fix
-[Solution with code if applicable]
-
-## Prevention
-[How to avoid this in future]
+- **Problem:** [Restate the issue clearly]
+- **Root Cause:** [What's actually wrong]
+- **Evidence:** [How we know this is the cause]
+- **Fix:** [Solution with code if applicable]
+- **Prevention:** [How to avoid this in future]
 ```

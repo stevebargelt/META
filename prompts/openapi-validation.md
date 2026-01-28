@@ -1,6 +1,6 @@
 # OpenAPI Validation Prompt
 
-Use this when `docs/openapi.yaml` exists.
+Validate the OpenAPI spec when `docs/openapi.yaml` exists.
 
 ## Goal
 
@@ -30,7 +30,7 @@ Include:
 - pass/fail
 - key errors (if any)
 
-## Output template (paste into `.handoff.md`)
+## Output Template
 
 ```markdown
 ## OpenAPI Validation

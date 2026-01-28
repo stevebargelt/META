@@ -2,15 +2,11 @@
 
 Human-in-the-loop kickoff that minimizes manual setup.
 
-## Usage
+## Goal
 
-```
-Start a project kickoff using META/prompts/kickoff.md
-Project path: [path]
-Tool: [codex | claude | other]
-```
+Gather project requirements, write AGENTS.md, and hand off to Product Manager for PRD creation.
 
-## Kickoff Flow
+## Steps
 
 1. Ask the questions below (keep it concise).
 2. Summarize decisions.
@@ -31,30 +27,22 @@ Tool: [codex | claude | other]
 9. External integrations?
 10. Quality level: prototype or production?
 
-## Output Requirements
+## How to Verify
 
-- AGENTS.md must include: purpose, stack, key commands, current focus
+- AGENTS.md exists with: purpose, stack, key commands, current focus
+- CLAUDE.md is a symlink to AGENTS.md
 - Default to feature-first structure
 - PRD is written by Product Manager agent using `META/prompts/prd-template.md`
 - If answers are missing, ask follow-ups before writing files
 
-## Handoff to Product Manager
+## Output Template
 
-After AGENTS.md is created, hand off:
+After AGENTS.md is created, hand off with:
 - The answers to kickoff questions
 - Project path
 - Any open questions
 
-Expected output:
-- `docs/PRD.md` (one page)
-
-## Handoff to Orchestrator
-
-After PRD is created, hand off:
+After PRD is created, hand off with:
 - `AGENTS.md` + `docs/PRD.md`
 - Any open questions
 - Preference for parallel teams (default: enable where possible)
-
-Expected output:
-- Orchestration plan
-- First build tasks started (or clear next prompts if approvals needed)

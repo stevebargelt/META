@@ -1,6 +1,6 @@
 # Observability Validation Prompt
 
-Use this before final approval to ensure baseline observability exists.
+Validate baseline observability before final approval.
 
 ## Goal
 
@@ -19,7 +19,7 @@ Confirm correlation IDs, structured logging, and error correlation are present.
 2) Confirm error responses include correlation ID
 3) Confirm logs include correlation ID fields
 
-## Output Template (paste into .handoff.md)
+## Output Template
 
 ```markdown
 ## Observability Validation

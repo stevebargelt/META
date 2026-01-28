@@ -1,6 +1,10 @@
 # README Template
 
-Use this to create a minimal, production-friendly README.
+Minimal, production-friendly README scaffold.
+
+## Goal
+
+Provide a consistent README structure covering setup, usage, testing, and deployment.
 
 ---
 

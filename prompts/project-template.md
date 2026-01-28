@@ -2,6 +2,7 @@
 
 Inherits: ../META/agents/base.md
 
+<!-- Goal: Scaffold a new project's AGENTS.md with context, stack, commands, and rules. -->
 <!-- For specialized agents, see ../META/agents/ -->
 <!-- For multi-agent workflows, see ../META/workflows/multi-agent.md -->
 <!-- For PRDs, see ../META/prompts/prd-template.md -->

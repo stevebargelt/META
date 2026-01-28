@@ -1,6 +1,10 @@
 # Handoff Template
 
-Unified format for all handoffs: context resets, model switches, and agent handoffs. One file (`.handoff.md`) in the project root, always overwritten with current state.
+Unified format for all handoffs: context resets, model switches, and agent handoffs.
+
+## Goal
+
+Provide a consistent handoff format so any incoming agent can resume work without lost context.
 
 ## Rules
 

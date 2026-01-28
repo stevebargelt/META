@@ -1,6 +1,10 @@
 # Preflight Checklist
 
-Run this before heavy implementation to avoid late blockers.
+Run before heavy implementation to avoid late blockers.
+
+## Goal
+
+Verify project basics, tooling, and environment are ready before implementation starts.
 
 ## Checks
 
@@ -17,7 +21,6 @@ Run this before heavy implementation to avoid late blockers.
 
 ### Supabase (if project uses it)
 Trigger if any are true: `supabase/` directory exists, `.env.example` contains SUPABASE, or docs mention Supabase.
-
 - [ ] `supabase` CLI available
 - [ ] `docker` available (Supabase local)
 - [ ] `supabase start` instructions present in `docs/SETUP.md`
@@ -26,24 +29,17 @@ Trigger if any are true: `supabase/` directory exists, `.env.example` contains S
 - [ ] `.env` exists (or explicitly note missing)
 - [ ] Required env vars listed in `.env.example`
 
-## How to Run
-
-Use shell commands to verify:
+## How to Verify
 
 ```bash
 command -v node
 command -v npm
 command -v git
+command -v supabase  # if applicable
+command -v docker    # if applicable
 ```
 
-For Supabase:
-
-```bash
-command -v supabase
-command -v docker
-```
-
-## Output Template (paste into .handoff.md)
+## Output Template
 
 ```markdown
 ## Preflight Check

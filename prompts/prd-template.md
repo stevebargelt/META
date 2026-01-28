@@ -2,12 +2,9 @@
 
 Concise, one-page product definition for parallel teams.
 
-## Usage
+## Goal
 
-```
-Create a PRD using META/prompts/prd-template.md
-[Describe the idea]
-```
+Define problem, requirements, and acceptance criteria in one page so teams can build in parallel.
 
 ---
 
