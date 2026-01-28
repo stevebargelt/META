@@ -33,6 +33,12 @@ tmux_new_window() {
   tmux new-window -d -t "$session" -n "$window" "$command"
 }
 
+tmux_select_window() {
+  local session="$1"
+  local window="$2"
+  tmux select-window -t "$session:$window" 2>/dev/null || true
+}
+
 tmux_kill_session() {
   local session="$1"
   tmux kill-session -t "$session" >/dev/null 2>&1 || true
