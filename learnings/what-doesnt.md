@@ -108,6 +108,22 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Instead:** Scaffold .gitignore on project init; quality gate checks for it
 **Source:** test-app-5 (2026-01)
 
+### Quality Gate Assumes Single package.json
+
+**What:** Quality gate script only checks root `package.json` for test script
+**Why it fails:** Monorepos with separate server/client directories have no root package.json; test check gets skipped
+**Example:** test-app-6 skipped test validation despite 156 tests in server/
+**Instead:** Update `quality-gate.sh` to detect monorepo structure and check subdirectories (server/, client/, packages/*)
+**Source:** test-app-6 (2026-01)
+
+### No Frontend Test Generation
+
+**What:** Pipelines generate backend tests but not frontend (React) tests
+**Why it fails:** UI logic, component behavior, and integrations go untested; 156 backend tests but 0 frontend tests
+**Example:** test-app-6 has React + TanStack Query + @dnd-kit but no component tests
+**Instead:** Add frontend test step to orchestrator template; configure Vitest + Testing Library for client/
+**Source:** test-app-6 (2026-01)
+
 ---
 
 ---

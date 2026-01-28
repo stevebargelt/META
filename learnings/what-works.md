@@ -108,6 +108,22 @@ git commit -m "feat: complete feature"
 **Pattern:** Step N-1 runs checklist, Step N runs `quality-gate.sh`
 **Source:** test-app-5 (2026-01)
 
+### Build Validation After Parallel Merges
+
+**What:** Add a build validation step immediately after each parallel group completes
+**Why it works:** Catches integration issues at the merge point (TypeScript errors, config mismatches, missing exports) rather than at final DoD gate. test-app-6 caught req.params type issues at step 7, saving rework.
+**When:** Any pipeline with parallel groups
+**Pattern:** After parallel group N completes, run `npm run build && npm test` for affected workspaces
+**Source:** test-app-6 (2026-01)
+
+### Isolate High-Risk Steps
+
+**What:** Orchestrator makes complex/risky steps sequential rather than grouping with other work
+**Why it works:** Reduces blast radius of failures; easier to debug and retry
+**Example:** test-app-6 correctly made Kanban (step 11) sequential despite simpler UI steps being parallel
+**When:** Components with external dependencies, complex libraries (drag-drop, auth), or novel implementations
+**Source:** test-app-6 (2026-01)
+
 ---
 
 ## Model Selection
