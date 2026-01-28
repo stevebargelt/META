@@ -120,8 +120,8 @@ Before building features, ensure a basic observability plan:
 
 Before implementation starts, verify tooling and environment readiness:
 
-1. Run `META/prompts/preflight-checklist.md`
-2. Fix missing tools or envs before moving on
+1. Run `META/scripts/preflight-gate.sh --project .`
+2. Fix any failures before moving on
 
 ### 5. Architecture Phase (if applicable)
 
@@ -159,7 +159,7 @@ If you plan to run parallel workstreams, create a minimal contract stub first:
 1. Use `META/prompts/contract-stub.md` (OpenAPI required for parallel work)
 2. Save to `docs/openapi.yaml` (fallback only with explicit justification)
 3. Update `.handoff.md` with the contract stub summary
-4. If `docs/openapi.yaml` exists, plan an OpenAPI validation step using `META/prompts/openapi-validation.md`
+4. OpenAPI validation is automatic via `META/scripts/quality-gate.sh`
 
 ### 5c. Parallelization Planning (Required for multi-agent runs)
 

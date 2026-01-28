@@ -145,7 +145,7 @@ When generating a pipeline, you must:
 - Identify independent tasks and assign a shared `PARALLEL_GROUP` label
 - Default assumption: client and server workstreams can run in parallel after architecture
 - If any parallelism is planned, insert a **contract stub step** before parallel groups using `META/prompts/contract-stub.md`. OpenAPI (`docs/openapi.yaml`) is required unless explicitly justified.
-- If the contract stub is OpenAPI (`docs/openapi.yaml`), insert a validation step using `META/prompts/openapi-validation.md` before final gates.
+- OpenAPI validation is automatic via `META/scripts/quality-gate.sh` — no separate validation step needed.
 - If no parallelism is safe, explicitly state why in `.handoff.md` and add the template block below
 - Ensure groups are scoped so agents do not edit the same files concurrently
 
