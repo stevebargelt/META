@@ -4,7 +4,8 @@
 
 gate_prompt() {
   local message="$1"
-  local prompt="${2:-Approve? [y/n/r(retry)/s(skip)] (review above)} "
+  local log_file="${2:-}"
+  local prompt="${3:-Approve? [y/n/r(retry)/s(skip)]}"
 
   if [[ "${META_AUTO_APPROVE:-}" == "1" ]]; then
     printf "\n%s\n" "$message" >&2
@@ -13,9 +14,16 @@ gate_prompt() {
     return 0
   fi
 
+  # Show log summary if log file provided
+  if [[ -n "$log_file" && -f "$log_file" ]]; then
+    printf "\n─── Last 20 lines of %s ───\n" "$(basename "$log_file")" >&2
+    tail -20 "$log_file" >&2
+    printf "────────────────────────────────────\n\n" >&2
+  fi
+
   while true; do
-    printf "\n%s\n" "$message" >&2
-    read -r -p "$prompt" choice
+    printf "%s\n" "$message" >&2
+    read -r -p "$prompt " choice
     case "$choice" in
       y|Y)
         echo "approve"

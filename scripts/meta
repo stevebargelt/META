@@ -686,8 +686,9 @@ control_run() {
           cli_for_gate=$(select_cli "${WF_STEP_CLI[$idx]}" "$default_cli")
           local prompt_for_gate
           prompt_for_gate="${WF_STEP_PROMPT[$idx]}"
+          local log_file="$project/.meta/steps/$run_id/step-${idx}.log"
           local decision
-          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")")
+          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
 
           case "$decision" in
             approve)
@@ -883,8 +884,9 @@ control_run() {
           cli_for_gate=$(select_cli "${WF_STEP_CLI[$gate_step]}" "$default_cli")
           local prompt_for_gate
           prompt_for_gate="${WF_STEP_PROMPT[$gate_step]}"
+          local log_file="$project/.meta/steps/$run_id/step-${gate_step}.log"
           local decision
-          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$gate_step" "$agent" "$cli_for_gate" "$prompt_for_gate")")
+          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$gate_step" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
 
           case "$decision" in
             approve)
@@ -958,8 +960,9 @@ control_run() {
       cli_for_gate=$(select_cli "${WF_STEP_CLI[$idx]}" "$default_cli")
       local prompt_for_gate
       prompt_for_gate="${WF_STEP_PROMPT[$idx]}"
+      local log_file="$project/.meta/steps/$run_id/step-${idx}.log"
       local decision
-      decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")")
+      decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
 
       case "$decision" in
         approve)
