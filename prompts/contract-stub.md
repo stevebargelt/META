@@ -4,8 +4,8 @@ Use this before parallelizing workstreams. Goal: create a minimal API/UI contrac
 
 ## Preference Order
 
-1. **OpenAPI spec** (preferred): `docs/openapi.yaml`
-2. **Route list**: `docs/api-routes.md`
+1. **OpenAPI spec** (required when parallelizing): `docs/openapi.yaml`
+2. **Route list** (only if OpenAPI is explicitly not feasible): `docs/api-routes.md`
 3. **Shared types/interfaces**: `src/shared/contracts.ts` (or similar)
 
 ## Minimum Output (choose best fit)
@@ -36,7 +36,9 @@ Create a shared types file with:
 
 - Keep it minimal and accurate to the current plan.
 - Do not guess complex schemas; stub with placeholders if needed.
+- If parallel workstreams exist, OpenAPI is required unless you document a clear exception.
 - Update `.handoff.md` with files created and any open questions.
+- If you create `docs/openapi.yaml`, ensure the pipeline includes a validation step using `META/prompts/openapi-validation.md`.
 
 ## Output template for `.handoff.md`
 

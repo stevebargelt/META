@@ -3,9 +3,13 @@ description: Design-heavy refactor flow
 timeout_min: 90
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
-1 | architect | - | auto | - | - | Plan refactor approach and risks based on .handoff.md. Update .handoff.md.
-2 | reviewer  | - | auto | A | - | Review current code for risks and pitfalls. Write to .handoff-step-2.md.
-3 | tester    | - | auto | A | - | Identify coverage gaps and propose tests. Write to .handoff-step-3.md.
-4 | base      | - | auto | - | - | Execute refactor and update tests. Update .handoff.md.
-5 | reviewer  | - | gate | - | - | Review refactor for regressions and quality. Update .handoff.md.
-6 | base      | - | gate | - | - | Run META/prompts/definition-of-done-checklist.md. Note missing baseline items in .handoff.md (fix only if safe and in scope).
+1 | base      | - | gate | - | 20 | Run META/prompts/preflight-checklist.md. Verify tools and environment readiness, report in .handoff.md.
+2 | architect | - | auto | - | -  | Plan refactor approach and risks based on .handoff.md. Update .handoff.md.
+3 | reviewer  | - | auto | A | -  | Review current code for risks and pitfalls. Write to .handoff-step-3.md.
+4 | tester    | - | auto | A | -  | Identify coverage gaps and propose tests. Write to .handoff-step-4.md.
+5 | base      | - | auto | - | -  | Execute refactor and update tests. Update .handoff.md.
+6 | reviewer  | - | gate | - | -  | Review refactor for regressions and quality. Update .handoff.md.
+7 | base      | - | auto | - | -  | If docs/openapi.yaml exists, run META/prompts/openapi-validation.md. Otherwise note skip in .handoff.md.
+8 | base      | - | gate | - | -  | Run META/prompts/observability-validation.md. Treat failures as blocking and report in .handoff.md.
+9 | base      | - | auto | - | -  | Run META/prompts/test-execution.md. Record commands and results in .handoff.md.
+10 | base     | - | gate | - | -  | Run META/prompts/definition-of-done-checklist.md. Note missing baseline items in .handoff.md (fix only if safe and in scope).

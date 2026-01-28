@@ -31,7 +31,8 @@ Notes:
 - `timeout_min` sets the pipeline default; `TIMEOUT_MIN` overrides per step (`-` uses default).
 - Escape literal pipes in `PROMPT` as `\|`.
 - If parallelism is possible, `PARALLEL_GROUP` must be set; otherwise the orchestrator must explain why in `.handoff.md`.
-- If parallelism is planned, add a contract stub step first (use `META/prompts/contract-stub.md`, prefer OpenAPI).
+- If parallelism is planned, add a contract stub step first (use `META/prompts/contract-stub.md`). OpenAPI is required unless explicitly justified.
+- If `docs/openapi.yaml` exists, add a validation step using `META/prompts/openapi-validation.md`.
 
 ### File List
 

@@ -7,9 +7,12 @@ Use this at the end of a pipeline to verify the project is shippable.
 - [ ] README exists and matches `META/prompts/readme-template.md`
 - [ ] CI pipeline exists (e.g., `.github/workflows/ci.yml`)
 - [ ] Observability baseline implemented (`META/prompts/observability-checklist.md`)
+- [ ] Observability validated (`META/prompts/observability-validation.md`)
 - [ ] External service setup documented if applicable (`META/prompts/external-service-setup-checklist.md`)
 - [ ] Git history exists with at least one milestone commit (`META/prompts/git-hygiene-checklist.md`)
 - [ ] Tests pass for core packages
+- [ ] Test execution recorded (`META/prompts/test-execution.md`)
+- [ ] OpenAPI validated if `docs/openapi.yaml` exists (`META/prompts/openapi-validation.md`)
 
 ## Recommended
 

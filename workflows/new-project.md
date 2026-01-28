@@ -114,6 +114,7 @@ If you depend on Supabase or other services, document setup before feature work:
 1. Run through `META/prompts/external-service-setup-checklist.md`
 2. Add `.env.example` with required variables
 3. Add schema/migrations or bootstrap steps
+4. Ask early for required external info (API keys, URLs, project refs) and provide instructions on how to find them for external services
 
 ### 4e. Observability Baseline
 
@@ -122,6 +123,13 @@ Before building features, ensure a basic observability plan:
 1. Run through `META/prompts/observability-checklist.md`
 2. Use `META/patterns/api/observability-middleware.js` for correlation IDs + logging
 3. Pair with `META/patterns/api/rest-error-handling.ts` to return correlation IDs
+
+### 4f. Preflight Check
+
+Before implementation starts, verify tooling and environment readiness:
+
+1. Run `META/prompts/preflight-checklist.md`
+2. Fix missing tools or envs before moving on
 
 ### 5. Architecture Phase (if applicable)
 
@@ -156,9 +164,10 @@ Save this as `ARCHITECTURE.md` in your project.
 
 If you plan to run parallel workstreams, create a minimal contract stub first:
 
-1. Use `META/prompts/contract-stub.md` (prefer OpenAPI)
-2. Save to `docs/openapi.yaml` (or fallback to `docs/api-routes.md`)
+1. Use `META/prompts/contract-stub.md` (OpenAPI required for parallel work)
+2. Save to `docs/openapi.yaml` (fallback only with explicit justification)
 3. Update `.handoff.md` with the contract stub summary
+4. If `docs/openapi.yaml` exists, plan an OpenAPI validation step using `META/prompts/openapi-validation.md`
 
 ### 5c. Parallelization Planning (Required for multi-agent runs)
 

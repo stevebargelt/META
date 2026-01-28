@@ -206,7 +206,7 @@ When tasks are independent:
 - Same codebase area (merge conflicts)
 - Benefits don't justify coordination overhead
 
-**Requirement:** If tasks can run in parallel, assign `PARALLEL_GROUP` labels in the pipeline. If you plan parallel workstreams, create a contract stub first (use `META/prompts/contract-stub.md`, prefer OpenAPI). If not, explicitly justify why in `.handoff.md`.
+**Requirement:** If tasks can run in parallel, assign `PARALLEL_GROUP` labels in the pipeline. If you plan parallel workstreams, create a contract stub first (use `META/prompts/contract-stub.md`). OpenAPI (`docs/openapi.yaml`) is required unless explicitly justified. If `docs/openapi.yaml` exists, include a validation step (use `META/prompts/openapi-validation.md`). If not, explicitly justify why in `.handoff.md`.
 
 ## Quality Gates
 

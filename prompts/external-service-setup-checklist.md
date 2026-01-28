@@ -5,6 +5,8 @@ Use this when the project depends on external services (e.g., Supabase, Stripe, 
 ## Required
 
 - [ ] Document the service in README (what it is used for)
+- [ ] Identify required external info (API keys, URLs, project refs) and ask early
+- [ ] Record placeholders in `.env.example` (never store real secrets)
 - [ ] Provide `.env.example` with required variables
 - [ ] Provide setup steps for local dev
 - [ ] Provide a verification step (how to test connectivity)
