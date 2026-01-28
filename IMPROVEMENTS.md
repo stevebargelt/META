@@ -17,7 +17,17 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 
 ## Immediate Priority (High-Value, Low-Effort)
 
-### 1. Validate with One Real Project
+### 1. External Services Integration Strategy
+- [ ] Define a pattern for working with external services (Supabase, Stripe, Auth0, etc.)
+- [ ] Create discovery phase: what info is needed before coding starts (API keys, URLs, project refs)
+- [ ] Establish when to prompt user for setup vs. when to stub/mock
+- [ ] Document handoff pattern: what goes in `.env.example`, `docs/SETUP.md`, `.handoff.md`
+- [ ] Consider MCP servers for service-specific tooling
+- [ ] Test with at least 2 different external services
+
+**Why:** Current pipelines struggle when external services require manual setup mid-run. Need a smooth pattern that gathers requirements early and handles credentials safely.
+
+### 2. Validate with One Real Project
 - [x] Pick one project (test-app)
 - [x] Ensure AGENTS.md inherits from `../META/agents/base.md` and CLAUDE.md is symlinked
 - [x] Follow `workflows/new-project.md` end-to-end
@@ -27,7 +37,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 
 **Why:** Validates the entire system. Creates the flywheel for compounding.
 
-### 2. Populate Pattern Library from Existing Code
+### 3. Populate Pattern Library from Existing Code
 - [x] API error handling pattern → `patterns/api/`
 - [x] Testing setup pattern → `patterns/testing/`
 - [x] Deployment/CI pattern → `patterns/deployment/` (ci-pipeline-node.md, quality-gates.md, ci-setup-checklist)
@@ -38,7 +48,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 
 **Current count:** Proven: 4 (jwt-refresh-rotation, supabase-jwt-middleware, zod-validation-middleware, supertest-in-memory) | Templates: 3 (rn-mf-contracts, rn-mf-host-loader, feature-first)
 
-### 3. Add Tester Agent
+### 4. Add Tester Agent
 - [x] Create `agents/tester.md`
 - [x] Define focus: test strategy, coverage analysis, test design
 - [x] Define deliverables: test plans, edge case identification, test code
@@ -47,7 +57,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 
 **Location:** `agents/tester.md`
 
-### 4. Pipeline Quality Baselines
+### 5. Pipeline Quality Baselines
 - [x] Definition-of-done checklist prompt + gated steps in pipelines
 - [x] External services setup step early in `project` pipeline
 - [x] README template + `.env.example` + CI stub in `new-project.sh`
@@ -65,7 +75,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 
 ## Medium-Term (Structural Improvements)
 
-### 4. Add Simple Tooling
+### 6. Add Simple Tooling
 - [x] Create `scripts/` directory
 - [x] `scripts/new-project.sh` - bootstrap new project and print kickoff prompt
 - [x] `scripts/add-pattern.sh` - scaffold new pattern with header template
@@ -73,42 +83,42 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 - [x] `scripts/meta` - tmux orchestration CLI for pipelines
 - [x] Document scripts in README.md
 
-### 5. Create CHANGELOG.md
+### 7. Create CHANGELOG.md
 - [ ] Create `CHANGELOG.md` at root
 - [ ] Define versioning scheme (semantic versioning recommended)
 - [ ] Document current state as v1.0.0
 - [ ] Establish process for documenting changes
 
-### 6. Define Success Metrics
+### 8. Define Success Metrics
 - [ ] Create `metrics.md` or add section to README
 - [ ] Track: projects using META, patterns in library, pattern reuse count
 - [ ] Track: average project bootstrap time, learnings captured
 - [ ] Set up monthly review cadence
 
-### 7. Simplify Handoff Format
+### 9. Simplify Handoff Format
 - [x] Review current 7-section handoff template in `workflows/multi-agent.md`
 - [x] Create streamlined alternative — unified `.handoff.md` template at `prompts/handoff-template.md`
 - [x] Consolidate 4 different handoff templates into one unified spec
 - [x] Add context budget system at `workflows/context-budget.md`
 - [x] Test simplified format on real handoff (test-app)
 
-### 8. Add Stack-Specific Security Checklists
+### 10. Add Stack-Specific Security Checklists
 - [ ] `patterns/security/node-security-checklist.md`
 - [ ] `patterns/security/react-security-checklist.md`
 - [ ] `patterns/security/api-security-checklist.md`
 - [ ] Reference from `agents/reviewer.md`
 
-### 9. Add Contract Tests Template
+### 11. Add Contract Tests Template
 - [ ] Create a minimal contract test template for host/remotes
 - [ ] Require contract tests in parallel workstreams
 
-### 10. Pipeline Ergonomics
+### 12. Pipeline Ergonomics
 - [ ] Auto-commit checkpoints option for key steps
 - [x] Contract validation step (OpenAPI lint) when `docs/openapi.yaml` exists
 - [ ] Model budget guard (warn when step exceeds expected duration)
 - [x] Test execution enforcement step
 
-### 11. Add OTA Release + Rollback Checklist
+### 13. Add OTA Release + Rollback Checklist
 - [ ] Document host/remote compatibility checks
 - [ ] Add rollback path for failed OTA
 
@@ -116,17 +126,17 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 
 ## Long-Term (Scale Considerations)
 
-### 11. Pattern Discovery/Search
+### 14. Pattern Discovery/Search
 - [ ] Add tags/categories to pattern headers (standardize format)
 - [ ] Create `patterns/INDEX.md` with descriptions and tags
 - [ ] Consider future: RAG/vector search integration for 50+ patterns
 
-### 12. Multi-User/Team Considerations
+### 15. Multi-User/Team Considerations
 - [ ] Document pattern approval process (if needed)
 - [ ] Define how conflicting learnings are resolved
 - [ ] Consider branch/PR workflow for pattern changes
 
-### 13. Automated Pattern Extraction
+### 16. Automated Pattern Extraction
 - [ ] Research feasibility of AI-assisted pattern detection
 - [ ] Design prompt for reviewing commits and suggesting extractions
 - [ ] Prototype integration with git hooks or CI
