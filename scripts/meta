@@ -432,14 +432,12 @@ step_launch() {
   fi
 
   if [[ "$cli" == "claude-interactive" || "$cli" == "codex-interactive" ]]; then
-    echo "Interactive step ${step_num} (${agent}). Switching to tmux window '${window_name}'..."
-  fi
-
-  tmux_new_window "$session" "$window_name" "bash \"$AGENT_RUN_FILE\""
-
-  # Auto-switch to window for interactive steps
-  if [[ "$cli" == "claude-interactive" || "$cli" == "codex-interactive" ]]; then
-    tmux_select_window "$session" "$window_name"
+    # Split pane for interactive steps - keeps control window visible
+    echo "Interactive step ${step_num} (${agent}). Opening in split pane..."
+    tmux_split_pane "$session" "v" "50" "bash \"$AGENT_RUN_FILE\""
+  else
+    # Regular window for non-interactive steps
+    tmux_new_window "$session" "$window_name" "bash \"$AGENT_RUN_FILE\""
   fi
 }
 

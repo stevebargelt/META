@@ -39,6 +39,21 @@ tmux_select_window() {
   tmux select-window -t "$session:$window" 2>/dev/null || true
 }
 
+# Split current pane and run command in the new pane
+# Direction: "h" for horizontal (side-by-side), "v" for vertical (top/bottom)
+tmux_split_pane() {
+  local session="$1"
+  local direction="${2:-v}"  # default vertical (top/bottom)
+  local size="${3:-50}"      # percentage
+  local command="$4"
+
+  if [[ "$direction" == "h" ]]; then
+    tmux split-window -h -t "$session" -p "$size" "$command"
+  else
+    tmux split-window -v -t "$session" -p "$size" "$command"
+  fi
+}
+
 tmux_kill_session() {
   local session="$1"
   tmux kill-session -t "$session" >/dev/null 2>&1 || true
