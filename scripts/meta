@@ -4,16 +4,28 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  meta run <pipeline> --project <path> --task "description" [--cli claude|codex] [--run-id <id>] [--unsafe] [--auto-approve] [--no-auto-commit] [--dry-run]
+  meta run <pipeline> --project <path> --task "description" [options]
   meta status [--project <path>] [--run-id <id>]
-  meta resume [--project <path>] [--run-id <id>] [--cli claude|codex] [--unsafe] [--auto-approve] [--no-auto-commit]
+  meta resume [--project <path>] [--run-id <id>] [options]
   meta abort [--project <path>] [--run-id <id>]
   meta list
   meta doctor [--project <path>]
 
+Options:
+  --cli claude|codex     CLI tool to use (default: claude)
+  --run-id <id>          Specific run ID
+  --unsafe               Add --dangerously-skip-permissions to claude
+  --auto-approve         Auto-approve quality gates
+  --no-auto-commit       Disable auto-commit after each step
+  --research             Enable competitive research step (project pipeline)
+  --no-auto-retry        Prompt for retry on failure (default: auto-retry)
+  --max-retries <n>      Max retries before abort (default: 3)
+  --dry-run              Show pipeline steps without running
+
 Notes:
   - Pipelines live in workflows/pipelines/*.pipeline
-  - --unsafe adds --dangerously-skip-permissions to claude only
+  - By default, failed steps auto-retry up to 3 times then abort
+  - Use --no-auto-retry to get interactive retry prompts
 USAGE
 }
 
@@ -439,6 +451,10 @@ run_step_serial() {
   local unsafe_flag="${10}"
   local state_file="${11}"
 
+  local retry_count=0
+  local max_retries="${META_MAX_RETRIES:-3}"
+  local auto_retry="${META_AUTO_RETRY:-1}"
+
   while true; do
     state_set "$state_file" "current_step" "$step_num"
     state_set "$state_file" "step_${step_num}" "running"
@@ -463,6 +479,7 @@ run_step_serial() {
     fi
 
     state_set "$state_file" "step_${step_num}" "failed"
+    retry_count=$((retry_count + 1))
 
     local message
     local log_file="$project/.meta/steps/$run_id/step-${step_num}.log"
@@ -480,6 +497,31 @@ run_step_serial() {
       fi
     fi
 
+    # Auto-retry logic
+    if [[ "$auto_retry" == "1" ]]; then
+      if (( retry_count < max_retries )); then
+        echo ""
+        echo "$message"
+        echo "Auto-retrying... (attempt $((retry_count + 1)) of $max_retries)"
+        rm -f "$AGENT_EXIT_FILE" >/dev/null 2>&1 || true
+        continue
+      else
+        echo ""
+        echo "=========================================="
+        echo "PIPELINE ABORTED: Max retries exhausted"
+        echo "=========================================="
+        echo ""
+        echo "Step ${step_num} (${agent}) failed after ${max_retries} attempts."
+        echo ""
+        echo "Last failure: $message"
+        echo ""
+        echo "To resume: meta resume --project \"$project\""
+        echo "=========================================="
+        return 1
+      fi
+    fi
+
+    # Manual retry prompt (--no-auto-retry)
     local decision
     decision=$(error_prompt "$message")
 
@@ -509,6 +551,8 @@ control_run() {
   local auto_approve=false
   local auto_commit=true
   local research=false
+  local auto_retry=true
+  local max_retries=3
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -543,6 +587,14 @@ control_run() {
       --research)
         research=true
         shift
+        ;;
+      --no-auto-retry)
+        auto_retry=false
+        shift
+        ;;
+      --max-retries)
+        max_retries="$2"
+        shift 2
         ;;
       *)
         shift
@@ -586,6 +638,10 @@ control_run() {
   if [[ "$auto_commit" == false ]]; then
     export META_AUTO_COMMIT=0
   fi
+  if [[ "$auto_retry" == true ]]; then
+    export META_AUTO_RETRY=1
+  fi
+  export META_MAX_RETRIES="$max_retries"
 
   echo "Running pipeline: ${pipeline_name}"
   echo "Project: ${project}"
@@ -736,6 +792,7 @@ control_run() {
       fi
 
       if [[ ${#failed_steps[@]} -gt 0 ]]; then
+      local auto_retry="${META_AUTO_RETRY:-1}"
       local failed_entry
       for failed_entry in "${failed_steps[@]}"; do
         local step_num="${failed_entry%%:*}"
@@ -760,7 +817,15 @@ control_run() {
         fi
 
         local decision
-        decision=$(error_prompt "$message")
+        if [[ "$auto_retry" == "1" ]]; then
+          # Auto-retry: go straight to retry via run_step_serial (which has retry logic)
+          echo ""
+          echo "$message"
+          echo "Auto-retrying failed parallel step..."
+          decision="retry"
+        else
+          decision=$(error_prompt "$message")
+        fi
 
         case "$decision" in
           retry)
@@ -976,6 +1041,8 @@ meta_run() {
   local auto_approve=false
   local auto_commit=true
   local research=false
+  local auto_retry=true
+  local max_retries=3
   local dry_run=false
 
   while [[ $# -gt 0 ]]; do
@@ -1003,6 +1070,14 @@ meta_run() {
       --auto-approve)
         auto_approve=true
         shift
+        ;;
+      --no-auto-retry)
+        auto_retry=false
+        shift
+        ;;
+      --max-retries)
+        max_retries="$2"
+        shift 2
         ;;
       --no-auto-commit)
         auto_commit=false
@@ -1114,6 +1189,8 @@ meta_run() {
   state_set "$state_file" "flag_auto_approve" "$auto_approve"
   state_set "$state_file" "flag_auto_commit" "$auto_commit"
   state_set "$state_file" "flag_research" "$research"
+  state_set "$state_file" "flag_auto_retry" "$auto_retry"
+  state_set "$state_file" "flag_max_retries" "$max_retries"
 
   local idx
   for ((idx=1; idx<=WF_STEP_COUNT; idx++)); do
@@ -1135,6 +1212,12 @@ meta_run() {
   fi
   if [[ "$research" == true ]]; then
     control_flags+=" --research"
+  fi
+  if [[ "$auto_retry" == false ]]; then
+    control_flags+=" --no-auto-retry"
+  fi
+  if [[ "$max_retries" != "3" ]]; then
+    control_flags+=" --max-retries $max_retries"
   fi
 
   local control_script="$meta_dir/steps/$run_id/control.run.sh"
@@ -1202,6 +1285,8 @@ meta_resume() {
   local auto_approve=""
   local auto_commit=""
   local research=""
+  local auto_retry=""
+  local max_retries=""
 
   # Track which flags were explicitly set
   local cli_set=false
@@ -1209,6 +1294,8 @@ meta_resume() {
   local auto_approve_set=false
   local auto_commit_set=false
   local research_set=false
+  local auto_retry_set=false
+  local max_retries_set=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1244,6 +1331,16 @@ meta_resume() {
         research=true
         research_set=true
         shift
+        ;;
+      --no-auto-retry)
+        auto_retry=false
+        auto_retry_set=true
+        shift
+        ;;
+      --max-retries)
+        max_retries="$2"
+        max_retries_set=true
+        shift 2
         ;;
       -h|--help)
         usage
@@ -1284,6 +1381,12 @@ meta_resume() {
   if [[ "$research_set" == false ]]; then
     research=$(state_get "$state_file" "flag_research" || echo "false")
   fi
+  if [[ "$auto_retry_set" == false ]]; then
+    auto_retry=$(state_get "$state_file" "flag_auto_retry" || echo "true")
+  fi
+  if [[ "$max_retries_set" == false ]]; then
+    max_retries=$(state_get "$state_file" "flag_max_retries" || echo "3")
+  fi
 
   # Show restored flags if any were loaded
   local restored=""
@@ -1295,6 +1398,9 @@ meta_resume() {
   fi
   if [[ "$research" == "true" && "$research_set" == false ]]; then
     restored+=" --research"
+  fi
+  if [[ "$auto_retry" == "false" && "$auto_retry_set" == false ]]; then
+    restored+=" --no-auto-retry"
   fi
   if [[ -n "$restored" ]]; then
     echo "Restored flags from state:${restored}"
@@ -1330,6 +1436,12 @@ meta_resume() {
   fi
   if [[ "$research" == true ]]; then
     control_flags+=" --research"
+  fi
+  if [[ "$auto_retry" == false ]]; then
+    control_flags+=" --no-auto-retry"
+  fi
+  if [[ "$max_retries" != "3" && -n "$max_retries" ]]; then
+    control_flags+=" --max-retries $max_retries"
   fi
 
   local control_script="$meta_dir/steps/$run_id/control.run.sh"
