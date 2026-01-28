@@ -84,6 +84,30 @@ git commit -m "feat: complete feature"
 **When:** Automated multi-agent orchestration
 **Source:** test-app (2026-01)
 
+### Contract-First Development
+
+**What:** Create OpenAPI (or equivalent) contract stub before parallel workstreams begin
+**Why it works:** Zero integration issues at merge time; response envelopes, error formats, data shapes all match
+**When:** Any project with parallel backend/frontend development
+**Example:** Step 1 creates `docs/openapi.yaml`, then infra/backend/frontend groups work against shared contract
+**Source:** test-app-5 (2026-01)
+
+### Auto-Commit Per Step
+
+**What:** Pipeline auto-commits after each successful step with `meta: step N (agent) complete`
+**Why it works:** Clean history showing exactly what each step produced; easy to bisect; each step's changes isolated
+**When:** Multi-step automated pipelines
+**Pattern:** `--no-auto-commit` flag available for edge cases
+**Source:** test-app-5 (2026-01)
+
+### Two-Stage Quality Gate
+
+**What:** DoD checklist (human-readable) followed by quality gate script (machine-verifiable)
+**Why it works:** Checklist catches nuanced issues; script enforces hard gates. Redundant but effective.
+**When:** Final stages of any build pipeline
+**Pattern:** Step N-1 runs checklist, Step N runs `quality-gate.sh`
+**Source:** test-app-5 (2026-01)
+
 ---
 
 ## Model Selection

@@ -84,6 +84,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Instead:** Provide setup docs and a bootstrap path (SQL, migrations, or CLI steps)
 **Source:** test-app (2026-01)
 
+### Late Integration Validation
+
+**What:** Waiting until the final DoD step to verify that parallel workstreams compose correctly
+**Why it fails:** Blocking issues found late require significant rework; root package.json missing, TS errors across workspaces, config mismatches
+**Example:** Step 15 found root package.json missing, TypeScript errors in test files, Vite proxy pointing to wrong port
+**Instead:** Add intermediate build validation after parallel merges (`npm run build && npm test` at workspace root before polish/review stages)
+**Source:** test-app-5 (2026-01)
+
 ### No CI/CD Pipeline
 
 **What:** Shipping a project without any CI/CD automation
@@ -91,6 +99,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Example:** Manual-only build with no CI workflows
 **Instead:** Add at least one CI pipeline for lint/test/build
 **Source:** test-app (2026-01)
+
+### Missing Root .gitignore
+
+**What:** Subdirectories have their own .gitignore but root does not
+**Why it fails:** node_modules, .env, build artifacts, IDE files can be committed accidentally
+**Example:** test-app-5 shipped with no root .gitignore despite monorepo structure
+**Instead:** Scaffold .gitignore on project init; quality gate checks for it
+**Source:** test-app-5 (2026-01)
 
 ---
 
