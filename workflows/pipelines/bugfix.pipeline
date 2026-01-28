@@ -3,11 +3,8 @@ description: Focused bug fix flow
 timeout_min: 45
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
-1 | base     | - | gate | - | 20 | Run META/prompts/preflight-checklist.md. Verify tools and environment readiness, report in .handoff.md.
-2 | debugger | - | auto | - | -  | Diagnose the root cause from .handoff.md. Update .handoff.md with findings.
-3 | base     | - | auto | - | -  | Implement fix and add regression test. Update .handoff.md with changes.
-4 | reviewer | - | gate | - | -  | Review fix for correctness and security. Update .handoff.md with findings.
-5 | base     | - | auto | - | -  | If docs/openapi.yaml exists, run META/prompts/openapi-validation.md. Otherwise note skip in .handoff.md.
-6 | base     | - | gate | - | -  | Run META/prompts/observability-validation.md. Treat failures as blocking and report in .handoff.md.
-7 | base     | - | auto | - | -  | Run META/prompts/test-execution.md. Record commands and results in .handoff.md.
-8 | base     | - | gate | - | -  | Run META/prompts/definition-of-done-checklist.md. Note any missing baseline items in .handoff.md (only fix if low-risk and in scope).
+1 | debugger | - | auto | - | -  | Diagnose the root cause from .handoff.md. Update .handoff.md with findings.
+2 | base     | - | auto | - | -  | Implement fix and add regression test. Update .handoff.md with changes.
+3 | reviewer | - | gate | - | -  | Review fix for correctness and security. Update .handoff.md with findings.
+4 | base     | - | auto | - | -  | Run META/prompts/definition-of-done-checklist.md. Note gaps in .handoff.md.
+5 | base     | - | gate | - | -  | Final quality gate. Run META/scripts/quality-gate.sh --project . and report results in .handoff.md. If checks fail, fix what you can and re-run.
