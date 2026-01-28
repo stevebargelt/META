@@ -51,7 +51,15 @@ When complete:
 - Summarize key decisions and files touched.
 EOF_PROMPT
 
-  cat "$agent_def" > "$AGENT_SYSTEM_FILE"
+  # Compose system prompt: base.md + agent definition (unless agent IS base)
+  local base_def="$meta_dir/agents/base.md"
+  if [[ "$agent" != "base" ]] && [[ -f "$base_def" ]]; then
+    cat "$base_def" > "$AGENT_SYSTEM_FILE"
+    printf "\n---\n\n" >> "$AGENT_SYSTEM_FILE"
+    cat "$agent_def" >> "$AGENT_SYSTEM_FILE"
+  else
+    cat "$agent_def" > "$AGENT_SYSTEM_FILE"
+  fi
 
   cat > "$AGENT_RUN_FILE" <<EOF_RUN
 #!/usr/bin/env bash
