@@ -4,12 +4,12 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  meta run <pipeline> --project <path> --task "description" [--cli claude|codex] [--run-id <id>] [--unsafe] [--auto-approve] [--dry-run]
+  meta run <pipeline> --project <path> --task "description" [--cli claude|codex] [--run-id <id>] [--unsafe] [--auto-approve] [--no-auto-commit] [--dry-run]
   meta status [--project <path>] [--run-id <id>]
-  meta resume [--project <path>] [--run-id <id>] [--cli claude|codex] [--unsafe] [--auto-approve]
+  meta resume [--project <path>] [--run-id <id>] [--cli claude|codex] [--unsafe] [--auto-approve] [--no-auto-commit]
   meta abort [--project <path>] [--run-id <id>]
   meta list
-  meta doctor
+  meta doctor [--project <path>]
 
 Notes:
   - Pipelines live in workflows/pipelines/*.pipeline
@@ -451,6 +451,14 @@ run_step_serial() {
     if [[ "$wait_result" == "success" ]]; then
       state_set "$state_file" "step_${step_num}" "done"
       echo "Step ${step_num} completed successfully."
+      # Auto-commit after successful step
+      if [[ "${META_AUTO_COMMIT:-1}" == "1" ]]; then
+        if command -v git >/dev/null 2>&1 && git -C "$project" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+          if [[ -n "$(git -C "$project" status --porcelain 2>/dev/null)" ]]; then
+            git -C "$project" add -A && git -C "$project" commit -m "meta: step ${step_num} (${agent}) complete" --no-verify 2>/dev/null || true
+          fi
+        fi
+      fi
       return 0
     fi
 
@@ -499,6 +507,7 @@ control_run() {
   local default_cli=""
   local unsafe=false
   local auto_approve=false
+  local auto_commit=true
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -524,6 +533,10 @@ control_run() {
         ;;
       --auto-approve)
         auto_approve=true
+        shift
+        ;;
+      --no-auto-commit)
+        auto_commit=false
         shift
         ;;
       *)
@@ -559,6 +572,9 @@ control_run() {
   fi
   if [[ "$auto_approve" == true ]]; then
     export META_AUTO_APPROVE=1
+  fi
+  if [[ "$auto_commit" == false ]]; then
+    export META_AUTO_COMMIT=0
   fi
 
   echo "Running pipeline: ${pipeline_name}"
@@ -766,6 +782,15 @@ control_run() {
         handoff_merge_step "$project" "$run_id" "$merged_step" "$agent"
       done
 
+      # Auto-commit after parallel group completion
+      if [[ "${META_AUTO_COMMIT:-1}" == "1" ]]; then
+        if command -v git >/dev/null 2>&1 && git -C "$project" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+          if [[ -n "$(git -C "$project" status --porcelain 2>/dev/null)" ]]; then
+            git -C "$project" add -A && git -C "$project" commit -m "meta: parallel group ${group_label} complete" --no-verify 2>/dev/null || true
+          fi
+        fi
+      fi
+
       local gate_step
       for gate_step in "${completed_steps[@]}"; do
         if [[ "${WF_STEP_GATE[$gate_step]}" == "gate" ]]; then
@@ -930,6 +955,7 @@ meta_run() {
   local run_id=""
   local unsafe=false
   local auto_approve=false
+  local auto_commit=true
   local dry_run=false
 
   while [[ $# -gt 0 ]]; do
@@ -956,6 +982,10 @@ meta_run() {
         ;;
       --auto-approve)
         auto_approve=true
+        shift
+        ;;
+      --no-auto-commit)
+        auto_commit=false
         shift
         ;;
       --dry-run)
@@ -1064,6 +1094,9 @@ meta_run() {
   if [[ "$auto_approve" == true ]]; then
     control_flags+=" --auto-approve"
   fi
+  if [[ "$auto_commit" == false ]]; then
+    control_flags+=" --no-auto-commit"
+  fi
 
   local control_script="$meta_dir/steps/$run_id/control.run.sh"
   cat > "$control_script" <<EOF_CTRL
@@ -1128,6 +1161,7 @@ meta_resume() {
   local default_cli=""
   local unsafe=false
   local auto_approve=false
+  local auto_commit=true
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1149,6 +1183,10 @@ meta_resume() {
         ;;
       --auto-approve)
         auto_approve=true
+        shift
+        ;;
+      --no-auto-commit)
+        auto_commit=false
         shift
         ;;
       -h|--help)
@@ -1198,6 +1236,9 @@ meta_resume() {
   fi
   if [[ "$auto_approve" == true ]]; then
     control_flags+=" --auto-approve"
+  fi
+  if [[ "$auto_commit" == false ]]; then
+    control_flags+=" --no-auto-commit"
   fi
 
   local control_script="$meta_dir/steps/$run_id/control.run.sh"
@@ -1300,41 +1341,126 @@ meta_list() {
 }
 
 meta_doctor() {
+  local project=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project) project="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
   local ok=true
 
+  echo "=== Global Tools ==="
+
   if ! command -v tmux >/dev/null 2>&1; then
-    echo "tmux: missing"
+    echo "  tmux: missing"
     ok=false
   else
-    echo "tmux: ok"
+    echo "  tmux: ok"
   fi
 
   if command -v claude >/dev/null 2>&1; then
-    echo "claude: ok"
+    echo "  claude: ok"
   else
-    echo "claude: missing"
+    echo "  claude: missing"
   fi
 
   if command -v codex >/dev/null 2>&1; then
-    echo "codex: ok"
+    echo "  codex: ok"
   else
-    echo "codex: missing"
+    echo "  codex: missing"
   fi
+
+  echo ""
+  echo "=== Pipelines ==="
 
   local pipeline_dir="$META_DIR/workflows/pipelines"
   local file
   for file in "$pipeline_dir"/*.pipeline; do
     [[ -f "$file" ]] || continue
     if workflow_parse "$file"; then
-      echo "pipeline: $(basename "$file") ok"
+      echo "  $(basename "$file"): ok"
     else
-      echo "pipeline: $(basename "$file") invalid"
+      echo "  $(basename "$file"): invalid"
       ok=false
     fi
   done
 
+  if [[ -n "$project" ]]; then
+    project=$(resolve_project "$project")
+    echo ""
+    echo "=== Project: $project ==="
+
+    # Git repo
+    if git -C "$project" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      echo "  git: ok"
+    else
+      echo "  git: not a repo"
+    fi
+
+    # README
+    if [[ -f "$project/README.md" ]] && [[ -s "$project/README.md" ]]; then
+      echo "  README.md: ok"
+    else
+      echo "  README.md: missing or empty"
+      ok=false
+    fi
+
+    # AGENTS.md / CLAUDE.md
+    if [[ -f "$project/AGENTS.md" ]]; then
+      echo "  AGENTS.md: ok"
+    else
+      echo "  AGENTS.md: missing"
+      ok=false
+    fi
+
+    # .env / .env.example
+    if [[ -f "$project/.env" ]]; then
+      echo "  .env: ok"
+    elif [[ -f "$project/.env.example" ]]; then
+      echo "  .env: missing (.env.example exists — copy and fill it)"
+      ok=false
+    else
+      echo "  .env: no .env or .env.example"
+    fi
+
+    # node_modules (if package.json exists)
+    if [[ -f "$project/package.json" ]]; then
+      if [[ -d "$project/node_modules" ]]; then
+        echo "  node_modules: ok"
+      else
+        echo "  node_modules: missing (run npm install)"
+        ok=false
+      fi
+
+      # test script
+      local has_test
+      has_test=$(node -e "const p=require('$project/package.json'); console.log(p.scripts && p.scripts.test && !p.scripts.test.includes('no test specified') ? 'yes' : 'no')" 2>/dev/null || echo "no")
+      if [[ "$has_test" == "yes" ]]; then
+        echo "  test script: ok"
+        if [[ -d "$project/node_modules" ]]; then
+          if (cd "$project" && npm test --silent >/dev/null 2>&1); then
+            echo "  npm test: passes"
+          else
+            echo "  npm test: FAILS"
+            ok=false
+          fi
+        else
+          echo "  npm test: skipped (no node_modules)"
+        fi
+      else
+        echo "  test script: none configured"
+      fi
+    fi
+  fi
+
+  echo ""
   if [[ "$ok" == false ]]; then
+    echo "Some checks failed."
     exit 1
+  else
+    echo "All checks passed."
   fi
 }
 
@@ -1365,7 +1491,7 @@ main() {
       meta_list
       ;;
     doctor)
-      meta_doctor
+      meta_doctor "$@"
       ;;
     --control)
       control_run "$@"

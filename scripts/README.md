@@ -13,6 +13,7 @@ Tmux-based orchestrator for multi-agent pipelines.
 Common commands:
 - `meta list` — list available pipelines
 - `meta doctor` — check tmux/CLI/pipeline health
+- `meta doctor --project <path>` — also check project readiness (.env, node_modules, tests)
 - `meta status` — show current pipeline progress
 - `meta resume` — continue last run
 - `meta abort` — stop and clean up

@@ -40,6 +40,25 @@ gate_prompt() {
   done
 }
 
+quality_gate_check() {
+  local project="$1"
+  local script
+  script="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/quality-gate.sh"
+  if [[ -x "$script" ]]; then
+    echo "Running quality gate checks..." >&2
+    local output
+    if output=$("$script" --project "$project" 2>&1); then
+      printf "%s\n" "$output" >&2
+      return 0
+    else
+      printf "%s\n" "$output" >&2
+      echo "Quality gate FAILED." >&2
+      return 1
+    fi
+  fi
+  return 0
+}
+
 error_prompt() {
   local message="$1"
   local prompt="${2:-Retry? [r/s/a(abort)]} "
