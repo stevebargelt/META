@@ -705,6 +705,8 @@ control_run() {
 
       local failed_steps=()
       local completed_steps=()
+
+      if [[ ${#launched_steps[@]} -gt 0 ]]; then
       local step
       for step in "${launched_steps[@]}"; do
         local timeout_min
@@ -721,7 +723,9 @@ control_run() {
           failed_steps+=("${step}:${wait_result}")
         fi
       done
+      fi
 
+      if [[ ${#failed_steps[@]} -gt 0 ]]; then
       local failed_entry
       for failed_entry in "${failed_steps[@]}"; do
         local step_num="${failed_entry%%:*}"
@@ -774,13 +778,16 @@ control_run() {
             ;;
         esac
       done
+      fi
 
+      if [[ ${#completed_steps[@]} -gt 0 ]]; then
       local merged_step
       for merged_step in "${completed_steps[@]}"; do
         local agent
         agent="${WF_STEP_AGENT[$merged_step]}"
         handoff_merge_step "$project" "$run_id" "$merged_step" "$agent"
       done
+      fi
 
       # Auto-commit after parallel group completion
       if [[ "${META_AUTO_COMMIT:-1}" == "1" ]]; then
