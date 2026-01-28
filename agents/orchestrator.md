@@ -205,6 +205,31 @@ Parallel work starts only after contracts are defined and stubbed:
 - Shared types/interfaces (versioned)
 Use `prompts/contract-stub.md` for these contracts.
 
+### Build Validation After Parallel Merge
+
+**Critical:** After each parallel group completes, insert a build validation step before continuing. This catches integration issues early.
+
+```
+# After parallel group completes:
+validation | base | auto | - | 5 | Run `npm run build && npm test` at workspace root. Report failures in .handoff.md. If build fails, list specific errors for next agent to fix.
+```
+
+Why this matters:
+- Individual parallel steps may pass but fail to compose
+- Missing root package.json, type mismatches, config errors surface here
+- Catching issues after parallel merge is much cheaper than at final gate
+
+Pipeline pattern:
+```
+# Parallel group
+4 | base | auto | backend | API feature A
+5 | base | auto | backend | API feature B
+# Validation step after merge
+6 | base | auto | - | Build validation: npm run build && npm test at root
+# Continue to next phase
+7 | base | auto | frontend | UI feature A
+```
+
 ### Workstream Charter
 
 Use this for each parallel stream:
@@ -250,9 +275,10 @@ Parallel streams require clean seams. When architecture is unclear, hand off to 
 Insert reviews at these points:
 
 1. **After design** — Architect output reviewed before implementation
-2. **After implementation** — Code reviewed before merge
-3. **After docs** — Documentation reviewed for accuracy
-4. **Before deployment** — Final check on production-bound code
+2. **After parallel merge** — Build validation (`npm run build && npm test`) before next phase
+3. **After implementation** — Code reviewed before merge
+4. **After docs** — Documentation reviewed for accuracy
+5. **Before deployment** — Final check via `META/scripts/quality-gate.sh`
 
 ## Decision Points
 
