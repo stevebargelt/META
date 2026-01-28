@@ -89,6 +89,18 @@ Short list of scope boundaries to prevent drift:
 - [Anything that still needs decision]
 ```
 
+## Using Competitive Research
+
+If `docs/COMPETITIVE-ANALYSIS.md` exists (from product-researcher step):
+
+1. **Read the analysis** before writing the PRD
+2. **Incorporate table-stakes** into "Must" requirements
+3. **Add Competitive Context section** to PRD
+4. **Use differentiation opportunities** to shape "Should" requirements
+5. **Reference "Features to Skip"** when defining Non-Goals
+
+If no competitive analysis exists, omit the "Competitive Context" section from the PRD.
+
 ## Handoff to Architect
 
 When complete, hand off with:

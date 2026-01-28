@@ -508,6 +508,7 @@ control_run() {
   local unsafe=false
   local auto_approve=false
   local auto_commit=true
+  local research=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -539,6 +540,10 @@ control_run() {
         auto_commit=false
         shift
         ;;
+      --research)
+        research=true
+        shift
+        ;;
       *)
         shift
         ;;
@@ -550,6 +555,11 @@ control_run() {
   [[ -z "$run_id" ]] && die "Run ID required for control"
 
   workflow_parse "$pipeline"
+
+  # Inject research step if --research flag is set
+  if [[ "$research" == true ]]; then
+    workflow_inject_research
+  fi
 
   local pipeline_name
   pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
@@ -965,6 +975,7 @@ meta_run() {
   local unsafe=false
   local auto_approve=false
   local auto_commit=true
+  local research=false
   local dry_run=false
 
   while [[ $# -gt 0 ]]; do
@@ -997,6 +1008,10 @@ meta_run() {
         auto_commit=false
         shift
         ;;
+      --research)
+        research=true
+        shift
+        ;;
       --dry-run)
         dry_run=true
         shift
@@ -1017,6 +1032,11 @@ meta_run() {
   pipeline=$(resolve_pipeline "$pipeline")
 
   workflow_parse "$pipeline"
+
+  # Inject research step if --research flag is set
+  if [[ "$research" == true ]]; then
+    workflow_inject_research
+  fi
 
   local pipeline_name
   pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
@@ -1093,6 +1113,7 @@ meta_run() {
   state_set "$state_file" "flag_unsafe" "$unsafe"
   state_set "$state_file" "flag_auto_approve" "$auto_approve"
   state_set "$state_file" "flag_auto_commit" "$auto_commit"
+  state_set "$state_file" "flag_research" "$research"
 
   local idx
   for ((idx=1; idx<=WF_STEP_COUNT; idx++)); do
@@ -1111,6 +1132,9 @@ meta_run() {
   fi
   if [[ "$auto_commit" == false ]]; then
     control_flags+=" --no-auto-commit"
+  fi
+  if [[ "$research" == true ]]; then
+    control_flags+=" --research"
   fi
 
   local control_script="$meta_dir/steps/$run_id/control.run.sh"
@@ -1177,12 +1201,14 @@ meta_resume() {
   local unsafe=""
   local auto_approve=""
   local auto_commit=""
+  local research=""
 
   # Track which flags were explicitly set
   local cli_set=false
   local unsafe_set=false
   local auto_approve_set=false
   local auto_commit_set=false
+  local research_set=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1212,6 +1238,11 @@ meta_resume() {
       --no-auto-commit)
         auto_commit=false
         auto_commit_set=true
+        shift
+        ;;
+      --research)
+        research=true
+        research_set=true
         shift
         ;;
       -h|--help)
@@ -1250,6 +1281,9 @@ meta_resume() {
   if [[ "$auto_commit_set" == false ]]; then
     auto_commit=$(state_get "$state_file" "flag_auto_commit" || echo "true")
   fi
+  if [[ "$research_set" == false ]]; then
+    research=$(state_get "$state_file" "flag_research" || echo "false")
+  fi
 
   # Show restored flags if any were loaded
   local restored=""
@@ -1258,6 +1292,9 @@ meta_resume() {
   fi
   if [[ "$unsafe" == "true" && "$unsafe_set" == false ]]; then
     restored+=" --unsafe"
+  fi
+  if [[ "$research" == "true" && "$research_set" == false ]]; then
+    restored+=" --research"
   fi
   if [[ -n "$restored" ]]; then
     echo "Restored flags from state:${restored}"
@@ -1290,6 +1327,9 @@ meta_resume() {
   fi
   if [[ "$auto_commit" == false ]]; then
     control_flags+=" --no-auto-commit"
+  fi
+  if [[ "$research" == true ]]; then
+    control_flags+=" --research"
   fi
 
   local control_script="$meta_dir/steps/$run_id/control.run.sh"

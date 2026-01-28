@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: new-project.sh <project-name> [--base <path>] [--tool <claude|codex>] [--task <desc>] [--pipeline <name>] [--unsafe] [--auto-approve] [--no-orchestrate] [--kickoff] [--launch] [--launch-cmd <cmd>] [--open] [--git] [--no-git]
+Usage: new-project.sh <project-name> [--base <path>] [--tool <claude|codex>] [--task <desc>] [--pipeline <name>] [--unsafe] [--auto-approve] [--research] [--no-orchestrate] [--kickoff] [--launch] [--launch-cmd <cmd>] [--open] [--git] [--no-git]
 
 Creates a new project folder and prints the kickoff prompt.
 Kickoff will ask questions, write the agent config, then hand off to PM for PRD.
@@ -37,6 +37,7 @@ PIPELINE="project"
 TASK=""
 UNSAFE=false
 AUTO_APPROVE=false
+RESEARCH=false
 declare -a CLI_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -63,6 +64,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --auto-approve)
       AUTO_APPROVE=true
+      shift
+      ;;
+    --research)
+      RESEARCH=true
       shift
       ;;
     --no-orchestrate)
@@ -251,6 +256,9 @@ if [[ "$ORCHESTRATE" == true ]]; then
   fi
   if [[ "$AUTO_APPROVE" == true ]]; then
     CLI_ARGS+=(--auto-approve)
+  fi
+  if [[ "$RESEARCH" == true ]]; then
+    CLI_ARGS+=(--research)
   fi
 
   echo ""

@@ -134,3 +134,49 @@ workflow_parse() {
 
   return 0
 }
+
+# Inject a product-researcher step before the product-manager step
+# Call after workflow_parse if --research flag is set
+workflow_inject_research() {
+  local insert_before=-1
+  local idx
+
+  # Find the first product-manager step
+  for ((idx=1; idx<=WF_STEP_COUNT; idx++)); do
+    if [[ "${WF_STEP_AGENT[$idx]}" == "product-manager" ]]; then
+      insert_before=$idx
+      break
+    fi
+  done
+
+  if [[ "$insert_before" -eq -1 ]]; then
+    echo "Note: --research specified but no product-manager step found; skipping research injection" >&2
+    return 0
+  fi
+
+  # Shift all steps from insert_before onwards up by 1
+  local new_count=$((WF_STEP_COUNT + 1))
+  for ((idx=WF_STEP_COUNT; idx>=insert_before; idx--)); do
+    local new_idx=$((idx + 1))
+    WF_STEP_NUM[$new_idx]="$new_idx"
+    WF_STEP_AGENT[$new_idx]="${WF_STEP_AGENT[$idx]}"
+    WF_STEP_CLI[$new_idx]="${WF_STEP_CLI[$idx]}"
+    WF_STEP_GATE[$new_idx]="${WF_STEP_GATE[$idx]}"
+    WF_STEP_GROUP[$new_idx]="${WF_STEP_GROUP[$idx]}"
+    WF_STEP_TIMEOUT[$new_idx]="${WF_STEP_TIMEOUT[$idx]}"
+    WF_STEP_PROMPT[$new_idx]="${WF_STEP_PROMPT[$idx]}"
+  done
+
+  # Insert the research step
+  WF_STEP_NUM[$insert_before]="$insert_before"
+  WF_STEP_AGENT[$insert_before]="product-researcher"
+  WF_STEP_CLI[$insert_before]="-"
+  WF_STEP_GATE[$insert_before]="auto"
+  WF_STEP_GROUP[$insert_before]=""
+  WF_STEP_TIMEOUT[$insert_before]="30"
+  WF_STEP_PROMPT[$insert_before]="Research competitors using META/agents/product-researcher.md. Read .handoff.md for product context. Create docs/COMPETITIVE-ANALYSIS.md with feature matrix and recommendations. Update .handoff.md with key findings."
+
+  WF_STEP_COUNT=$new_count
+
+  echo "Injected product-researcher step at position $insert_before (--research enabled)"
+}

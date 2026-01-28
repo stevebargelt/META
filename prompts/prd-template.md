@@ -16,14 +16,24 @@ Define problem, requirements, and acceptance criteria in one page so teams can b
 ## Target Users
 [Primary user(s) and context]
 
+## Competitive Context
+[Include if docs/COMPETITIVE-ANALYSIS.md exists, otherwise omit this section]
+
+**Key competitors:** [Top 2-3 from research]
+**Table-stakes features:** [What we must have to be credible]
+**Our differentiation:** [What makes us unique]
+
 ## Requirements
-**Must:**
+**Must:** (table-stakes + core value)
 - [Requirement]
 - [Requirement]
 
-**Should:**
+**Should:** (enhances value, not blocking)
 - [Requirement]
 - [Requirement]
+
+**Won't** (v1): (explicit scope cut)
+- [Feature cut based on research]
 
 ## Non-Goals
 - [Explicitly out of scope]
