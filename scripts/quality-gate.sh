@@ -70,7 +70,14 @@ else
   result fail "README.md" "missing or empty"
 fi
 
-# 3. Tests pass (if package.json has a test script)
+# 3. .gitignore exists
+if [[ -f .gitignore ]] && [[ -s .gitignore ]]; then
+  result pass ".gitignore" "exists"
+else
+  result fail ".gitignore" "missing — node_modules, .env, etc. may be committed"
+fi
+
+# 5. Tests pass (if package.json has a test script)
 if [[ -f package.json ]]; then
   has_test=$(node -e "const p=require('./package.json'); console.log(p.scripts && p.scripts.test && !p.scripts.test.includes('no test specified') ? 'yes' : 'no')" 2>/dev/null || echo "no")
   if [[ "$has_test" == "yes" ]]; then
@@ -86,7 +93,7 @@ else
   result skip "Tests" "no package.json"
 fi
 
-# 4. OpenAPI valid (if docs/openapi.yaml exists)
+# 6. OpenAPI valid (if docs/openapi.yaml exists)
 if [[ -f docs/openapi.yaml ]] || [[ -f docs/openapi.yml ]] || [[ -f docs/openapi.json ]]; then
   openapi_file=""
   for f in docs/openapi.yaml docs/openapi.yml docs/openapi.json; do
@@ -102,7 +109,7 @@ else
   result skip "OpenAPI" "no docs/openapi.yaml"
 fi
 
-# 5. Observability (correlation ID in server code)
+# 7. Observability (correlation ID in server code)
 server_dirs=""
 for d in src server app lib; do
   [[ -d "$d" ]] && server_dirs="$server_dirs $d"

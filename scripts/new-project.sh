@@ -165,6 +165,47 @@ if [[ ! -f "$ENV_EXAMPLE" ]]; then
 EOF
 fi
 
+GITIGNORE_FILE="${PROJECT_DIR}/.gitignore"
+if [[ ! -f "$GITIGNORE_FILE" ]]; then
+  cat > "$GITIGNORE_FILE" <<'EOF'
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Database (local dev)
+*.sqlite
+*.db
+data/
+EOF
+fi
+
 CI_FILE="${PROJECT_DIR}/.github/workflows/ci.yml"
 if [[ ! -f "$CI_FILE" ]]; then
   mkdir -p "${PROJECT_DIR}/.github/workflows"
