@@ -78,19 +78,107 @@ else
 fi
 
 # 5. Tests pass (if package.json has a test script)
-if [[ -f package.json ]]; then
-  has_test=$(node -e "const p=require('./package.json'); console.log(p.scripts && p.scripts.test && !p.scripts.test.includes('no test specified') ? 'yes' : 'no')" 2>/dev/null || echo "no")
-  if [[ "$has_test" == "yes" ]]; then
-    if npm test --silent 2>&1 >/dev/null; then
-      result pass "Tests" "npm test passed"
+# Supports: root package.json, monorepo with server/client, or packages/*
+
+has_test_script() {
+  local pkg="$1"
+  # Check if package.json has a "test" script that isn't the default "no test specified"
+  if grep -q '"test"[[:space:]]*:' "$pkg" 2>/dev/null; then
+    if grep -q 'no test specified' "$pkg" 2>/dev/null; then
+      echo "no"
     else
-      result fail "Tests" "npm test failed"
+      echo "yes"
     fi
   else
-    result skip "Tests" "no test script in package.json"
+    echo "no"
+  fi
+}
+
+run_tests_in_dir() {
+  local dir="$1"
+  local label="$2"
+  if [[ -f "$dir/package.json" ]]; then
+    local has_test
+    has_test=$(has_test_script "$dir/package.json")
+    if [[ "$has_test" == "yes" ]]; then
+      if (cd "$dir" && npm test --silent >/dev/null 2>&1); then
+        echo "pass:$label"
+      else
+        echo "fail:$label"
+      fi
+    else
+      echo "skip:$label (no test script)"
+    fi
+  else
+    echo "skip:$label (no package.json)"
+  fi
+}
+
+test_results=""
+test_locations=""
+
+# Check root package.json first
+if [[ -f package.json ]]; then
+  has_test=$(has_test_script "./package.json")
+  if [[ "$has_test" == "yes" ]]; then
+    if npm test --silent 2>&1 >/dev/null; then
+      result pass "Tests" "npm test passed (root)"
+      test_results="root_pass"
+    else
+      result fail "Tests" "npm test failed (root)"
+      test_results="root_fail"
+    fi
+  else
+    # Root has package.json but no test script - check for monorepo
+    test_results="check_monorepo"
   fi
 else
-  result skip "Tests" "no package.json"
+  # No root package.json - check for monorepo structure
+  test_results="check_monorepo"
+fi
+
+# If no root tests, check monorepo directories
+if [[ "$test_results" == "check_monorepo" ]]; then
+  monorepo_dirs=()
+  for subdir in server client backend frontend api web; do
+    if [[ -d "$subdir" ]] && [[ -f "$subdir/package.json" ]]; then
+      monorepo_dirs+=("$subdir")
+    fi
+  done
+  # Also check packages/* if it exists
+  if [[ -d "packages" ]]; then
+    for subdir in packages/*/; do
+      if [[ -f "$subdir/package.json" ]]; then
+        monorepo_dirs+=("${subdir%/}")
+      fi
+    done
+  fi
+
+  if [[ ${#monorepo_dirs[@]} -gt 0 ]]; then
+    pass_count=0
+    fail_count=0
+    skip_count=0
+    tested_dirs=""
+
+    for subdir in "${monorepo_dirs[@]}"; do
+      subdir_result=$(run_tests_in_dir "$subdir" "$subdir")
+      case "$subdir_result" in
+        pass:*) ((pass_count++)); tested_dirs="$tested_dirs ${subdir_result#pass:}" ;;
+        fail:*) ((fail_count++)); tested_dirs="$tested_dirs ${subdir_result#fail:}" ;;
+        skip:*) ((skip_count++)) ;;
+      esac
+    done
+
+    if [[ $fail_count -gt 0 ]]; then
+      result fail "Tests" "failed in:$tested_dirs"
+    elif [[ $pass_count -gt 0 ]]; then
+      result pass "Tests" "passed in:$tested_dirs"
+    else
+      result skip "Tests" "no test scripts in monorepo subdirs"
+    fi
+  else
+    result skip "Tests" "no package.json at root or in subdirs"
+  fi
 fi
 
 # 6. OpenAPI valid (if docs/openapi.yaml exists)
