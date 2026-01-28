@@ -2,8 +2,21 @@
 set -euo pipefail
 
 # Machine-verifiable quality gate checks.
-# Replaces LLM-driven validation steps (observability, openapi, test-execution).
+# Replaces LLM-driven validation steps with actual verification.
 # Exit 0 = all checks pass, exit 1 = at least one check failed.
+#
+# Checks performed:
+#  1. Git commits exist
+#  2. README.md exists and is non-empty
+#  3. .gitignore exists
+#  4. .env.example exists (documents required env vars)
+#  5. CI workflow exists (.github/workflows, .gitlab-ci, .circleci)
+#  6. Tests pass (npm test, supports monorepo)
+#  7. TypeScript compiles (tsc --noEmit)
+#  8. Lint passes (npm run lint or eslint)
+#  9. OpenAPI valid (redocly lint if docs/openapi.yaml exists)
+# 10. Observability (correlation ID references in server code)
+# 11. Build succeeds (npm run build)
 
 usage() {
   echo "Usage: quality-gate.sh --project <path>"
@@ -77,7 +90,28 @@ else
   result fail ".gitignore" "missing — node_modules, .env, etc. may be committed"
 fi
 
-# 5. Tests pass (if package.json has a test script)
+# 4. .env.example exists (documents required env vars)
+if [[ -f .env.example ]] && [[ -s .env.example ]]; then
+  result pass ".env.example" "exists"
+else
+  result fail ".env.example" "missing — env vars not documented"
+fi
+
+# 5. CI workflow exists
+ci_workflow=""
+for pattern in .github/workflows/*.yml .github/workflows/*.yaml .gitlab-ci.yml .circleci/config.yml; do
+  if ls $pattern 2>/dev/null | head -1 >/dev/null; then
+    ci_workflow=$(ls $pattern 2>/dev/null | head -1)
+    break
+  fi
+done
+if [[ -n "$ci_workflow" ]]; then
+  result pass "CI workflow" "$ci_workflow"
+else
+  result fail "CI workflow" "no CI config found (.github/workflows/, .gitlab-ci.yml, .circleci/)"
+fi
+
+# 6. Tests pass (if package.json has a test script)
 # Supports: root package.json, monorepo with server/client, or packages/*
 
 has_test_script() {
@@ -181,7 +215,52 @@ if [[ "$test_results" == "check_monorepo" ]]; then
   fi
 fi
 
-# 6. OpenAPI valid (if docs/openapi.yaml exists)
+# 7. TypeScript compiles (if tsconfig.json exists)
+tsconfig_found=""
+for tsconfig in tsconfig.json server/tsconfig.json client/tsconfig.json; do
+  [[ -f "$tsconfig" ]] && tsconfig_found="$tsconfig" && break
+done
+if [[ -n "$tsconfig_found" ]]; then
+  tsconfig_dir=$(dirname "$tsconfig_found")
+  if (cd "$tsconfig_dir" && npx tsc --noEmit 2>/dev/null); then
+    result pass "TypeScript" "compiles without errors"
+  else
+    result fail "TypeScript" "type errors found (run: npx tsc --noEmit)"
+  fi
+else
+  result skip "TypeScript" "no tsconfig.json found"
+fi
+
+# 8. Lint passes (if eslint config exists)
+has_lint_script() {
+  local pkg="$1"
+  grep -q '"lint"[[:space:]]*:' "$pkg" 2>/dev/null
+}
+
+eslint_config=""
+for config in .eslintrc .eslintrc.js .eslintrc.json .eslintrc.yml eslint.config.js eslint.config.mjs; do
+  [[ -f "$config" ]] && eslint_config="$config" && break
+done
+
+if [[ -n "$eslint_config" ]] || has_lint_script "package.json"; then
+  if [[ -f package.json ]] && has_lint_script "package.json"; then
+    if npm run lint --silent 2>/dev/null; then
+      result pass "Lint" "passed"
+    else
+      result fail "Lint" "lint errors found (run: npm run lint)"
+    fi
+  elif [[ -n "$eslint_config" ]]; then
+    if npx eslint . --max-warnings 0 2>/dev/null; then
+      result pass "Lint" "passed"
+    else
+      result fail "Lint" "lint errors found"
+    fi
+  fi
+else
+  result skip "Lint" "no eslint config or lint script"
+fi
+
+# 9. OpenAPI valid (if docs/openapi.yaml exists)
 if [[ -f docs/openapi.yaml ]] || [[ -f docs/openapi.yml ]] || [[ -f docs/openapi.json ]]; then
   openapi_file=""
   for f in docs/openapi.yaml docs/openapi.yml docs/openapi.json; do
@@ -197,7 +276,7 @@ else
   result skip "OpenAPI" "no docs/openapi.yaml"
 fi
 
-# 7. Observability (correlation ID in server code)
+# 10. Observability (correlation ID in server code)
 server_dirs=""
 for d in src server app lib; do
   [[ -d "$d" ]] && server_dirs="$server_dirs $d"
@@ -210,6 +289,41 @@ if [[ -n "$server_dirs" ]]; then
   fi
 else
   result skip "Observability" "no server code directories found"
+fi
+
+# 11. Build succeeds (if build script exists)
+has_build_script() {
+  local pkg="$1"
+  grep -q '"build"[[:space:]]*:' "$pkg" 2>/dev/null
+}
+
+build_ran=false
+if [[ -f package.json ]] && has_build_script "package.json"; then
+  if npm run build --silent 2>/dev/null; then
+    result pass "Build" "npm run build succeeded"
+    build_ran=true
+  else
+    result fail "Build" "build failed (run: npm run build)"
+    build_ran=true
+  fi
+fi
+
+# Check monorepo subdirs if no root build
+if [[ "$build_ran" == "false" ]]; then
+  for subdir in server client backend frontend; do
+    if [[ -f "$subdir/package.json" ]] && has_build_script "$subdir/package.json"; then
+      if (cd "$subdir" && npm run build --silent 2>/dev/null); then
+        result pass "Build ($subdir)" "succeeded"
+      else
+        result fail "Build ($subdir)" "failed"
+      fi
+      build_ran=true
+    fi
+  done
+fi
+
+if [[ "$build_ran" == "false" ]]; then
+  result skip "Build" "no build script found"
 fi
 
 echo "─────────────────────────────────"
