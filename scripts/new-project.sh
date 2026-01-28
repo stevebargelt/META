@@ -3,7 +3,7 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: new-project.sh <project-name> [--base <path>] [--tool <claude|codex>] [--task <desc>] [--pipeline <name>] [--unsafe] [--no-orchestrate] [--kickoff] [--launch] [--launch-cmd <cmd>] [--open] [--git] [--no-git]
+Usage: new-project.sh <project-name> [--base <path>] [--tool <claude|codex>] [--task <desc>] [--pipeline <name>] [--unsafe] [--auto-approve] [--no-orchestrate] [--kickoff] [--launch] [--launch-cmd <cmd>] [--open] [--git] [--no-git]
 
 Creates a new project folder and prints the kickoff prompt.
 Kickoff will ask questions, write the agent config, then hand off to PM for PRD.
@@ -36,6 +36,7 @@ ORCHESTRATE=true
 PIPELINE="project"
 TASK=""
 UNSAFE=false
+AUTO_APPROVE=false
 declare -a CLI_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -58,6 +59,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --unsafe)
       UNSAFE=true
+      shift
+      ;;
+    --auto-approve)
+      AUTO_APPROVE=true
       shift
       ;;
     --no-orchestrate)
@@ -160,7 +165,7 @@ if [[ ! -f "$CI_FILE" ]]; then
   mkdir -p "${PROJECT_DIR}/.github/workflows"
   CI_TEMPLATE="${SCRIPT_DIR}/../patterns/deployment/ci-pipeline-node.md"
   if [[ -f "$CI_TEMPLATE" ]]; then
-    awk 'BEGIN{in=0} /^```yaml/{in=1;next} /^```/{if(in){exit}} in{print}' "$CI_TEMPLATE" > "$CI_FILE"
+    awk 'BEGIN{in_block=0} /^```yaml/{in_block=1;next} /^```/{if(in_block){exit}} in_block{print}' "$CI_TEMPLATE" > "$CI_FILE"
   else
     cat > "$CI_FILE" <<'EOF'
 name: CI
@@ -243,6 +248,9 @@ if [[ "$ORCHESTRATE" == true ]]; then
   fi
   if [[ "$UNSAFE" == true ]]; then
     CLI_ARGS+=(--unsafe)
+  fi
+  if [[ "$AUTO_APPROVE" == true ]]; then
+    CLI_ARGS+=(--auto-approve)
   fi
 
   echo ""

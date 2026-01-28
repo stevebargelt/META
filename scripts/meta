@@ -4,9 +4,9 @@ set -euo pipefail
 usage() {
   cat <<'USAGE'
 Usage:
-  meta run <pipeline> --project <path> --task "description" [--cli claude|codex] [--run-id <id>] [--unsafe] [--dry-run]
+  meta run <pipeline> --project <path> --task "description" [--cli claude|codex] [--run-id <id>] [--unsafe] [--auto-approve] [--dry-run]
   meta status [--project <path>] [--run-id <id>]
-  meta resume [--project <path>] [--run-id <id>] [--cli claude|codex] [--unsafe]
+  meta resume [--project <path>] [--run-id <id>] [--cli claude|codex] [--unsafe] [--auto-approve]
   meta abort [--project <path>] [--run-id <id>]
   meta list
   meta doctor
@@ -135,6 +135,10 @@ select_cli() {
     fi
   fi
 
+  if [[ "$step_cli" == "interactive" ]]; then
+    step_cli="claude-interactive"
+  fi
+
   if [[ -z "$step_cli" || "$step_cli" == "-" ]]; then
     step_cli="${default_cli:-}"
   fi
@@ -174,6 +178,23 @@ format_duration() {
   else
     printf "%ds" "$seconds"
   fi
+}
+
+append_handoff_excerpt() {
+  local file="$1"
+  local max_lines="${2:-12}"
+
+  if [[ ! -f "$file" ]]; then
+    return 0
+  fi
+
+  local excerpt
+  excerpt=$(tail -n "$max_lines" "$file" 2>/dev/null || true)
+  if [[ -z "$excerpt" ]]; then
+    return 0
+  fi
+
+  printf "%s\n" "$excerpt" | sed 's/^/  /'
 }
 
 extract_prompt_paths() {
@@ -261,6 +282,26 @@ gate_message() {
     fi
     lines+=("Diff: git -C \"$project\" diff")
   fi
+
+  local excerpt_file="$handoff_main"
+  if [[ -f "$step_handoff" ]]; then
+    excerpt_file="$step_handoff"
+  fi
+  local excerpt
+  excerpt="$(append_handoff_excerpt "$excerpt_file" 12 || true)"
+  if [[ -n "$excerpt" ]]; then
+    lines+=("Handoff excerpt (${excerpt_file}):")
+    while IFS= read -r line; do
+      lines+=("${line}")
+    done <<<"$excerpt"
+  fi
+
+  local review_hint="Approve after reviewing: ${handoff_main}"
+  if [[ -f "$step_handoff" ]]; then
+    review_hint+=", ${step_handoff}"
+  fi
+  review_hint+=", ${log_file}, git diff"
+  lines+=("$review_hint")
 
   printf "%s\n" "${lines[@]}"
 }
@@ -457,6 +498,7 @@ control_run() {
   local run_id=""
   local default_cli=""
   local unsafe=false
+  local auto_approve=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -478,6 +520,10 @@ control_run() {
         ;;
       --unsafe)
         unsafe=true
+        shift
+        ;;
+      --auto-approve)
+        auto_approve=true
         shift
         ;;
       *)
@@ -510,6 +556,9 @@ control_run() {
   local unsafe_flag=""
   if [[ "$unsafe" == true ]]; then
     unsafe_flag="--dangerously-skip-permissions"
+  fi
+  if [[ "$auto_approve" == true ]]; then
+    export META_AUTO_APPROVE=1
   fi
 
   echo "Running pipeline: ${pipeline_name}"
@@ -880,6 +929,7 @@ meta_run() {
   local default_cli=""
   local run_id=""
   local unsafe=false
+  local auto_approve=false
   local dry_run=false
 
   while [[ $# -gt 0 ]]; do
@@ -902,6 +952,10 @@ meta_run() {
         ;;
       --unsafe)
         unsafe=true
+        shift
+        ;;
+      --auto-approve)
+        auto_approve=true
         shift
         ;;
       --dry-run)
@@ -1007,6 +1061,9 @@ meta_run() {
   if [[ "$unsafe" == true ]]; then
     control_flags+=" --unsafe"
   fi
+  if [[ "$auto_approve" == true ]]; then
+    control_flags+=" --auto-approve"
+  fi
 
   local control_script="$meta_dir/steps/$run_id/control.run.sh"
   cat > "$control_script" <<EOF_CTRL
@@ -1070,6 +1127,7 @@ meta_resume() {
   local run_id=""
   local default_cli=""
   local unsafe=false
+  local auto_approve=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1087,6 +1145,10 @@ meta_resume() {
         ;;
       --unsafe)
         unsafe=true
+        shift
+        ;;
+      --auto-approve)
+        auto_approve=true
         shift
         ;;
       -h|--help)
@@ -1133,6 +1195,9 @@ meta_resume() {
   fi
   if [[ "$unsafe" == true ]]; then
     control_flags+=" --unsafe"
+  fi
+  if [[ "$auto_approve" == true ]]; then
+    control_flags+=" --auto-approve"
   fi
 
   local control_script="$meta_dir/steps/$run_id/control.run.sh"

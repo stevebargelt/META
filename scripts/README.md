@@ -16,6 +16,7 @@ Common commands:
 - `meta status` — show current pipeline progress
 - `meta resume` — continue last run
 - `meta abort` — stop and clean up
+- `meta run ... --auto-approve` — auto-approve quality gates (use for test runs only)
 
 Pipelines live in `workflows/pipelines/`.
 
@@ -38,6 +39,7 @@ Options:
 - `--task <desc>` initial task description for orchestration
 - `--pipeline <name>` pipeline to run (default: `project`)
 - `--unsafe` pass through to `meta` (claude only)
+- `--auto-approve` auto-approve quality gates (test runs only)
 - `--no-orchestrate` skip auto-orchestration
 - `--kickoff` auto-launch kickoff (alias for `--launch`)
 - `--launch` start the CLI tool with the kickoff prompt as the initial message
