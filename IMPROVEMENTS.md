@@ -52,9 +52,10 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 - [x] External services setup step early in `project` pipeline
 - [x] README template + `.env.example` + CI stub in `new-project.sh`
 - [x] Observability checklist prompt
+- [x] Observability validation gate
 - [x] Git hygiene checklist prompt
 - [x] Contract stub prompt (OpenAPI preferred) before parallelization
-- [ ] Preflight step (tools, permissions, env vars)
+- [x] Preflight step (tools, permissions, env vars)
 - [ ] Gate prompt shows last 20 log lines for faster approvals
 - [ ] Artifact checklist step (expected files/paths)
 - [ ] Docs completeness check at final gate (README + PRD + ARCHITECTURE)
@@ -103,8 +104,9 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 
 ### 10. Pipeline Ergonomics
 - [ ] Auto-commit checkpoints option for key steps
-- [ ] Contract validation step (OpenAPI lint) when `docs/openapi.yaml` exists
+- [x] Contract validation step (OpenAPI lint) when `docs/openapi.yaml` exists
 - [ ] Model budget guard (warn when step exceeds expected duration)
+- [x] Test execution enforcement step
 
 ### 10. Add OTA Release + Rollback Checklist
 - [ ] Document host/remote compatibility checks
@@ -150,6 +152,10 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 | Contract stub prompt (OpenAPI) | 2026-01-28 | `prompts/contract-stub.md`, orchestrator + workflow requirements |
 | New-project scaffolding baselines | 2026-01-28 | README template, `.env.example`, CI stub in `scripts/new-project.sh` |
 | Pipeline timing logs | 2026-01-28 | step + pipeline timestamps and durations in `scripts/meta*` |
+| OpenAPI validation step | 2026-01-28 | `prompts/openapi-validation.md`, pipeline steps added |
+| Preflight checklist step | 2026-01-28 | `prompts/preflight-checklist.md`, inserted into pipelines |
+| Observability validation gate | 2026-01-28 | `prompts/observability-validation.md`, gate added to pipelines |
+| Test execution enforcement | 2026-01-28 | `prompts/test-execution.md`, pipeline steps added |
 
 ---
 

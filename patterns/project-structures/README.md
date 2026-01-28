@@ -58,6 +58,13 @@ Include:
   - Decision records, security, observability sections
   - Production-ready structure with examples
 
+### README Templates
+
+- **`readme-supabase-next.md`** — README structure for Next.js + Supabase apps
+  - Quickstart + env config
+  - Supabase setup + migration steps
+  - Testing + deployment checklist
+
 ### React Native + Module Federation
 
 - **`rn-mf-contracts.md`** — Contract-first package template for host/remotes

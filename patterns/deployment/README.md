@@ -25,6 +25,11 @@ Reusable patterns for deployment, CI/CD, and infrastructure.
 - Environment configuration
 - Health checks
 
+### External Services
+
+- `supabase-setup.md` — Local + hosted Supabase setup checklist
+- `supabase-initial-schema.sql` — Profiles + todos schema with RLS policies
+
 ## Usage
 
 Reference deployment patterns:

@@ -188,7 +188,15 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Why it fails:** Hard to debug, no audit trail, lower ops confidence
 **Example:** App shipped without baseline tracing/logging
 **Instead:** Implement observability in the base API stack (correlation IDs, structured logs, tracing hooks)
-**Source:** test-app (2026-01)
+**Source:** test-app (2026-01), test-app-2 (2026-01)
+
+### Missing OpenAPI Contract Stub
+
+**What:** Parallel work begins without an OpenAPI (or equivalent) contract stub
+**Why it fails:** Teams diverge, unclear expectations, integration friction later
+**Example:** No `docs/openapi.yaml` despite preference and parallelization planning
+**Instead:** Create a minimal OpenAPI spec before parallel work starts
+**Source:** test-app-2 (2026-01)
 
 ### Fixing Symptoms, Not Root Cause
 
