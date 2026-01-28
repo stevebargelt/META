@@ -1,0 +1,29 @@
+# External Service Setup Checklist
+
+Use this when the project depends on external services (e.g., Supabase, Stripe, S3).
+
+## Required
+
+- [ ] Document the service in README (what it is used for)
+- [ ] Provide `.env.example` with required variables
+- [ ] Provide setup steps for local dev
+- [ ] Provide a verification step (how to test connectivity)
+- [ ] Never commit secrets or real credentials
+
+## Data/Schema
+
+- [ ] Schema or migration files included (SQL or migrations)
+- [ ] Seed data or fixtures if required
+- [ ] Reset/refresh instructions for local dev
+
+## CI/Test Environment
+
+- [ ] Tests run without real credentials (mocks or local service)
+- [ ] CI uses safe defaults or test credentials
+
+## Supabase Notes (if applicable)
+
+- [ ] `supabase` CLI usage documented (init/start/reset)
+- [ ] Schema in `supabase/migrations` or `supabase/seed.sql`
+- [ ] RLS policies documented
+- [ ] Service role vs anon key usage explained
