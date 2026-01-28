@@ -3,6 +3,7 @@ description: Design-heavy refactor flow
 timeout_min: 90
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+0 | base      | - | auto | - | 5  | Preflight check: Run META/scripts/preflight-gate.sh --project . and report results in .handoff.md. If blockers exist, stop and list what needs to be fixed.
 1 | architect | - | auto | - | -  | Plan refactor approach and risks based on .handoff.md. Update .handoff.md.
 2 | reviewer  | - | auto | A | -  | Review current code for risks and pitfalls. Write to .handoff-step-2.md.
 3 | tester    | - | auto | A | -  | Identify coverage gaps and propose tests. Write to .handoff-step-3.md.

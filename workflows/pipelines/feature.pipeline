@@ -3,6 +3,7 @@ description: Full feature development flow
 timeout_min: 60
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+0 | base            | - | auto | - | 5  | Preflight check: Run META/scripts/preflight-gate.sh --project . and report results in .handoff.md. If blockers exist, stop and list what needs to be fixed.
 1 | product-manager | - | auto | - | 30 | Create PRD from task in .handoff.md. Write docs/PRD.md and update .handoff.md with summary.
 2 | architect       | - | gate | - | -  | Design architecture from PRD. Create ARCHITECTURE.md and update .handoff.md.
 3 | tester          | - | auto | - | -  | Create test plan and skeleton tests. Update .handoff.md with test plan and files.
