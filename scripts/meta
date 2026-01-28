@@ -1088,6 +1088,12 @@ meta_run() {
   state_set "$state_file" "run_id" "$run_id"
   state_set "$state_file" "current_step" "0"
 
+  # Persist CLI flags for resume
+  state_set "$state_file" "flag_cli" "$default_cli"
+  state_set "$state_file" "flag_unsafe" "$unsafe"
+  state_set "$state_file" "flag_auto_approve" "$auto_approve"
+  state_set "$state_file" "flag_auto_commit" "$auto_commit"
+
   local idx
   for ((idx=1; idx<=WF_STEP_COUNT; idx++)); do
     state_set "$state_file" "step_${idx}" "pending"
@@ -1168,9 +1174,15 @@ meta_resume() {
   local project=""
   local run_id=""
   local default_cli=""
-  local unsafe=false
-  local auto_approve=false
-  local auto_commit=true
+  local unsafe=""
+  local auto_approve=""
+  local auto_commit=""
+
+  # Track which flags were explicitly set
+  local cli_set=false
+  local unsafe_set=false
+  local auto_approve_set=false
+  local auto_commit_set=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1184,18 +1196,22 @@ meta_resume() {
         ;;
       --cli)
         default_cli="$2"
+        cli_set=true
         shift 2
         ;;
       --unsafe)
         unsafe=true
+        unsafe_set=true
         shift
         ;;
       --auto-approve)
         auto_approve=true
+        auto_approve_set=true
         shift
         ;;
       --no-auto-commit)
         auto_commit=false
+        auto_commit_set=true
         shift
         ;;
       -h|--help)
@@ -1219,6 +1235,32 @@ meta_resume() {
 
   if [[ -z "$state_file" || ! -f "$state_file" ]]; then
     die "No state file found for project: $project"
+  fi
+
+  # Restore flags from state (unless explicitly set on command line)
+  if [[ "$cli_set" == false ]]; then
+    default_cli=$(state_get "$state_file" "flag_cli" || true)
+  fi
+  if [[ "$unsafe_set" == false ]]; then
+    unsafe=$(state_get "$state_file" "flag_unsafe" || echo "false")
+  fi
+  if [[ "$auto_approve_set" == false ]]; then
+    auto_approve=$(state_get "$state_file" "flag_auto_approve" || echo "false")
+  fi
+  if [[ "$auto_commit_set" == false ]]; then
+    auto_commit=$(state_get "$state_file" "flag_auto_commit" || echo "true")
+  fi
+
+  # Show restored flags if any were loaded
+  local restored=""
+  if [[ "$auto_approve" == "true" && "$auto_approve_set" == false ]]; then
+    restored+=" --auto-approve"
+  fi
+  if [[ "$unsafe" == "true" && "$unsafe_set" == false ]]; then
+    restored+=" --unsafe"
+  fi
+  if [[ -n "$restored" ]]; then
+    echo "Restored flags from state:${restored}"
   fi
 
   local pipeline

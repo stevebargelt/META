@@ -149,6 +149,32 @@ When generating a pipeline, you must:
 - If no parallelism is safe, explicitly state why in `.handoff.md` and add the template block below
 - Ensure groups are scoped so agents do not edit the same files concurrently
 
+### PARALLEL_GROUP Column Semantics
+
+The pipeline runner uses the `PARALLEL_GROUP` column to determine execution:
+
+| Pattern | Behavior |
+|---------|----------|
+| Same value on multiple steps | **Concurrent** — steps run simultaneously |
+| Different values on steps | **Sequential** — each group runs after the previous completes |
+| Empty/`-` | **Sequential** — step runs alone after prior step completes |
+
+**Correct — concurrent execution:**
+```
+3 | base | auto | build | Build backend against OpenAPI spec
+4 | base | auto | build | Build frontend against OpenAPI spec
+```
+Both steps have `build` → they run in parallel.
+
+**Incorrect — sequential execution:**
+```
+3 | base | auto | backend | Build backend against OpenAPI spec
+4 | base | auto | frontend | Build frontend against OpenAPI spec
+```
+Different values (`backend` vs `frontend`) → they run one after another, not in parallel.
+
+**Rule:** To parallelize steps, give them the **same** `PARALLEL_GROUP` value.
+
 If no parallelism is possible, add this to `.handoff.md`:
 
 ```markdown
