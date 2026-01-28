@@ -50,7 +50,7 @@ mkdir -p docs
 cp ../META/prompts/prd-template.md docs/PRD.md
 ```
 
-Add the project to `META/project-registry.md`, then start building.
+Then start building.
 
 ---
 

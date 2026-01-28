@@ -85,15 +85,7 @@ Inherits: ../META/agents/base.md
 <!-- See also: ../META/workflows/multi-agent.md -->
 ```
 
-### 4. Register the Project
-
-Add to `META/project-registry.md`:
-
-```markdown
-| Project Name | `~/code/project-name/` | Active | [Status] |
-```
-
-### 4b. Create PRD (Recommended)
+### 4. Create PRD (Recommended)
 
 Create a one-page PRD at `docs/PRD.md` using:
 `META/prompts/prd-template.md`
@@ -346,10 +338,7 @@ Create detailed retrospective in `META/learnings/YYYY-MM-project-name.md`
 - Update agent definitions if you discovered better approaches
 - Update `META/learnings/` files
 
-### 4. Update Registry
-Mark project as complete/paused in `META/project-registry.md`
-
-### 5. Archive or Deploy
+### 4. Archive or Deploy
 - Push to GitHub if applicable
 - Deploy if production
 - Archive if learning project
@@ -381,7 +370,7 @@ git init
 cp ../META/prompts/project-template.md AGENTS.md
 ln -s AGENTS.md CLAUDE.md
 # Edit AGENTS.md
-# Add to META/project-registry.md
+# Edit AGENTS.md with project details
 
 # During development
 # - Use appropriate agents

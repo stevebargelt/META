@@ -141,38 +141,9 @@ Pipelines live in `workflows/pipelines/`. See `scripts/README.md` for available 
 └─────────────┘
 ```
 
-## Handoff Template
+## Handoff Format
 
-Use the unified template at `prompts/handoff-template.md` (type: `agent-handoff`). Agents share state through `.handoff.md` in the project root — outgoing agent writes it, incoming agent reads it first.
-
-For lightweight in-workflow handoffs that don't need full context (e.g., passing from architect to implementer within the same session), a shorter format works:
-
-```markdown
-## Handoff to [Agent Name]
-
-**Task:** [One sentence]
-**Inputs:** [Key files and decisions]
-**Expected output:** [Specific deliverable]
-**Success criteria:** [How to know this is done]
-```
-
-## Product Manager Handoff
-
-```markdown
-## Handoff to Architect
-
-**Task:** Design system based on PRD
-
-**Context:**
-- PRD: docs/PRD.md
-- Scope guardrails: docs/PRD.md
-- Open questions: [list]
-
-**Expected output:**
-- Architecture doc with diagrams
-- Implementation order
-- Risks + mitigations
-```
+Use the unified handoff template at `prompts/handoff-template.md`. Agents share state through `.handoff.md` in the project root.
 
 ## Parallel Execution
 
@@ -308,7 +279,7 @@ See `learnings/model-comparison.md` for latest findings.
 3. Reference files rather than pasting content
 4. Include specific task for this agent
 
-See `workflows/model-switching.md` for details.
+If switching models, include model name and reason in `.handoff.md`.
 
 ## Orchestrator Role
 
@@ -324,13 +295,10 @@ See `agents/orchestrator.md` for orchestration patterns.
 
 ## Spec-Driven Development (Boundary-Only)
 
-When parallel teams work on shared boundaries, require SDD at the contract level:
-- API contracts
+When parallel teams work on shared boundaries, require specs at the contract level:
+- API contracts (see `prompts/contract-stub.md`)
 - Event schemas
 - Remote/module interfaces
-
-Use the minimal checklist in:
-`workflows/spec-driven-development.md`
 
 ## Progress Tracking
 

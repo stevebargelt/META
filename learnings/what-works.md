@@ -8,40 +8,12 @@ Proven patterns and approaches from real projects. Add to this when you discover
 
 ## Agent Usage Patterns
 
-### Multi-Agent Workflows
-
-**Pattern:** Architect → Implement → Review → Document
-**Why it works:** Each agent focuses on what it's best at, quality gates catch issues early
-**When to use:** New features, significant changes
-**Source:** [Project name when discovered]
-
 ### Tmux Pipeline Orchestration
 
 **Pattern:** Use `meta` CLI to run multi-agent workflows in tmux
 **Why it works:** Clear visibility into each agent, repeatable flow, easy to pause at gates
 **When to use:** Multi-step builds, PRD → architecture → implementation sequences
 **Source:** test-app (2026-01)
-
-### Single Agent with Context
-
-**Pattern:** Use base agent with relevant patterns from `patterns/`
-**Why it works:** Reduces overhead, maintains consistency
-**When to use:** Straightforward implementations, bug fixes
-**Source:** [Project name when discovered]
-
----
-
-## Code Patterns
-
-*Add patterns here as you discover them. Format:*
-
-### [Pattern Name]
-
-**What:** [Brief description]
-**Why it works:** [Actual benefits observed]
-**When to use:** [Specific scenarios]
-**Location:** `patterns/[category]/[file]`
-**Source:** [Project where discovered]
 
 ---
 
@@ -66,19 +38,6 @@ Proven patterns and approaches from real projects. Add to this when you discover
 **What:** Clarify requirements before building
 **Why it works:** Saves rebuilding, gets better results
 **When:** Any time there are multiple valid approaches
-
----
-
-## Project Structure
-
-*Add patterns as you discover them*
-
-### [Structure Pattern]
-
-**What:** [Description]
-**Why it works:** [Benefits]
-**Example:** [Link or code]
-**Source:** [Project]
 
 ---
 
@@ -135,12 +94,6 @@ git commit -m "feat: complete feature"
 **Why it works:** Best balance of quality, speed, cost for most tasks
 **When to switch:** See `learnings/model-comparison.md`
 
-### Use GPT-4 for Debugging
-
-**What:** Switch to GPT-4 when debugging complex issues
-**Why it works:** Better at analyzing stack traces and error patterns
-**Example:** [Specific project where this helped]
-
 ---
 
 ## Quality Practices
@@ -172,19 +125,6 @@ git commit -m "feat: complete feature"
 **What:** Document significant technical decisions
 **Why it works:** Future you remembers why, others understand rationale
 **Format:** See `agents/architect.md` decision format
-
----
-
-## Automation
-
-*Add patterns as you discover them*
-
-### [Automation Pattern]
-
-**What:** [Description]
-**Why it works:** [Benefits]
-**How:** [Implementation]
-**Source:** [Project]
 
 ---
 

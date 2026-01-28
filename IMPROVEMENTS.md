@@ -23,7 +23,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 - [x] Follow `workflows/new-project.md` end-to-end
 - [x] Complete a retrospective using `learnings/retrospective-template.md`
 - [x] Extract at least 3 patterns to `patterns/`
-- [ ] Update `project-registry.md` with "Active" status
+- [x] ~~Update `project-registry.md`~~ (removed — recreate when 3+ projects exist)
 
 **Why:** Validates the entire system. Creates the flywheel for compounding.
 
@@ -108,7 +108,7 @@ Tracking recommendations from the January 2026 assessment. Update status as item
 - [ ] Model budget guard (warn when step exceeds expected duration)
 - [x] Test execution enforcement step
 
-### 10. Add OTA Release + Rollback Checklist
+### 11. Add OTA Release + Rollback Checklist
 - [ ] Document host/remote compatibility checks
 - [ ] Add rollback path for failed OTA
 

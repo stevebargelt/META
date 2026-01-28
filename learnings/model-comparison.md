@@ -118,7 +118,7 @@ Track which AI models excel at which tasks based on real project experience.
 3. **Provide new model** with summary + specific task
 4. **Reference patterns** from META for consistency
 
-See `workflows/model-switching.md` for detailed process.
+If switching models, include model name and reason in `.handoff.md`.
 
 ## Project-Specific Findings
 

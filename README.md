@@ -43,8 +43,7 @@ META/
 │   ├── new-project.md           # Project setup flow
 │   ├── multi-agent.md           # Agent orchestration
 │   ├── context-reset.md         # Handling long sessions
-│   ├── spec-driven-development.md # Boundary-only SDD
-│   └── model-switching.md       # Moving between models
+│   └── context-budget.md          # (removed — see context-reset.md)
 │
 ├── scripts/                     # Helper scripts
 │   ├── agent.sh                 # Create handoff file for an agent
@@ -59,7 +58,6 @@ META/
 │
 ├── AGENTS.md                    # Model-agnostic entrypoint
 ├── CLAUDE.md                    # Legacy redirect to agents/base.md
-├── project-registry.md          # Index of all projects
 └── README.md                    # This file
 ```
 
@@ -241,7 +239,7 @@ Different AI models have different strengths:
 - **GPT-4o** — Quick tasks, prototyping
 - **Gemini** — Massive context needs
 
-See `learnings/model-comparison.md` and `workflows/model-switching.md`.
+See `learnings/model-comparison.md`.
 
 ## Workflows
 
@@ -253,8 +251,7 @@ See `workflows/new-project.md` for full guide.
 1. Create project directory
 2. Copy `prompts/project-template.md` to project `AGENTS.md` and symlink `CLAUDE.md` → `AGENTS.md`
 3. Fill in project details, inherit from `agents/base.md`
-4. Add to `project-registry.md`
-5. Start building
+4. Start building
 
 ### Multi-Agent Task
 
@@ -278,14 +275,7 @@ See `workflows/context-reset.md`.
 
 ### Switching Models
 
-See `workflows/model-switching.md`.
-
-**Process:**
-1. Find clean breakpoint
-2. Create handoff document
-3. Switch to new model with context
-4. Complete specific task
-5. Update model-comparison.md if learned something
+If switching models, include model name and reason in `.handoff.md`. See `learnings/model-comparison.md` for model strengths.
 
 ## Recommended Project Layout
 
@@ -413,10 +403,6 @@ cp META/learnings/retrospective-template.md \
 # Update META
 # Immediately when you learn something
 ```
-
-## Project Registry
-
-See `project-registry.md` for list of all projects using META.
 
 ---
 

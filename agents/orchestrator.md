@@ -112,7 +112,7 @@ For task-specific handoffs within a workflow (not full context handoffs), a ligh
 
 ## Context Budget Management
 
-The orchestrator monitors context budget across the entire workflow per `workflows/context-budget.md`:
+The orchestrator monitors context budget across the entire workflow:
 
 - Before assigning a task likely to be large, plan a checkpoint
 - Between phases: write `.handoff.md` to capture workflow state
@@ -177,7 +177,7 @@ Parallel work starts only after contracts are defined and stubbed:
 - Event schemas (pub/sub payloads)
 - UI contracts (route params, events, design tokens)
 - Shared types/interfaces (versioned)
-Use boundary-only SDD for these contracts (see `workflows/spec-driven-development.md`).
+Use `prompts/contract-stub.md` for these contracts.
 
 ### Workstream Charter
 
@@ -249,52 +249,6 @@ When orchestrating, decide:
    - When to loop back (review → fix → review)
    - When to move forward
 
-## Output Format
-
-```markdown
-## Orchestration Plan: [Task Name]
-
-### Overview
-[What we're doing, why multiple agents]
-
-### Agent Flow
-
-#### Phase 1: [Name]
-- **Agent:** [Which one]
-- **Input:** [What they get]
-- **Output:** [What they produce]
-- **Duration estimate:** [Rough sense]
-
-#### Phase 2: [Name]
-[Same format]
-
-### Dependencies
-- Phase X depends on Phase Y completing
-- Phases A and B can run parallel
-
-### Contracts & Interfaces
-- [OpenAPI/GraphQL spec or event schemas]
-- [Shared types package or UI contracts]
-
-### Workstreams
-- Stream A: [Owner, scope, output]
-- Stream B: [Owner, scope, output]
-- Stream C: [Owner, scope, output]
-
-### Integration Plan
-- Contract tests: [how/where]
-- Integration build: [when]
-- Merge strategy: [feature flags, canary, staged]
-
-### Quality Gates
-- After Phase X: [Review/check]
-- Before Phase Y: [Verification]
-
-### Success Criteria
-- [How we know we're done]
-- [What "good" looks like]
-```
-
 ## Anti-Patterns
 
 - Don't orchestrate when one agent would suffice
@@ -303,22 +257,6 @@ When orchestrating, decide:
 - Don't leave `PARALLEL_GROUP` empty when tasks are independent
 - Don't skip quality gates to save time
 - Don't hand off work without clear task definition
-
-## Model Switching Strategy
-
-Use different models strategically:
-
-```markdown
-## Model Selection
-
-- **Architect:** Claude Sonnet (best at trade-offs)
-- **Implementation:** Claude Sonnet or GPT-4 (similar quality)
-- **Review:** Claude Sonnet (thorough security review)
-- **Debugging:** GPT-4 (good at trace analysis)
-- **Docs:** Claude Sonnet (concise writing)
-```
-
-See `learnings/model-comparison.md` for latest findings.
 
 ## Context Reset Handling
 
