@@ -146,6 +146,173 @@ select_cli() {
   printf "%s" "$step_cli"
 }
 
+truncate_text() {
+  local text="$1"
+  local max_len="$2"
+
+  text="${text//$'\n'/ }"
+  text="${text//$'\r'/ }"
+  text="${text//$'\t'/ }"
+
+  if (( ${#text} <= max_len )); then
+    printf "%s" "$text"
+  else
+    printf "%s..." "${text:0:max_len}"
+  fi
+}
+
+format_duration() {
+  local total="$1"
+  local hours=$((total / 3600))
+  local minutes=$(((total % 3600) / 60))
+  local seconds=$((total % 60))
+
+  if (( hours > 0 )); then
+    printf "%dh %dm %ds" "$hours" "$minutes" "$seconds"
+  elif (( minutes > 0 )); then
+    printf "%dm %ds" "$minutes" "$seconds"
+  else
+    printf "%ds" "$seconds"
+  fi
+}
+
+extract_prompt_paths() {
+  local prompt="$1"
+
+  if ! command -v grep >/dev/null 2>&1; then
+    return 0
+  fi
+
+  printf "%s\n" "$prompt" \
+    | grep -oE '([A-Za-z0-9._-]+/)+[A-Za-z0-9._-]+([.][A-Za-z0-9]+)?|[A-Za-z0-9._-]+[.](md|txt|json|yml|yaml|js|ts)' \
+    | sort -u 2>/dev/null || true
+}
+
+gate_message() {
+  local project="$1"
+  local run_id="$2"
+  local pipeline_file="$3"
+  local step_num="$4"
+  local agent="$5"
+  local cli="$6"
+  local prompt="$7"
+
+  local -a lines
+  lines+=("QUALITY GATE after step ${step_num} (${agent})")
+  if [[ -n "$pipeline_file" ]]; then
+    lines+=("Pipeline: ${pipeline_file} (step ${step_num})")
+  fi
+  if [[ -n "$cli" ]]; then
+    lines+=("CLI: ${cli}")
+  fi
+
+  if [[ -n "$prompt" ]]; then
+    local prompt_snip
+    prompt_snip=$(truncate_text "$prompt" 200)
+    lines+=("Prompt: ${prompt_snip}")
+
+    local refs
+    refs=$(extract_prompt_paths "$prompt")
+    if [[ -n "$refs" ]]; then
+      lines+=("Referenced in prompt:")
+      while IFS= read -r line; do
+        lines+=("  - ${line}")
+      done <<<"$refs"
+    fi
+  fi
+
+  local handoff_main="$project/.handoff.md"
+  lines+=("Handoff: ${handoff_main}")
+
+  local step_handoff
+  step_handoff="$(handoff_step_file "$project" "$step_num")"
+  if [[ -f "$step_handoff" ]]; then
+    lines+=("Step handoff: ${step_handoff}")
+  fi
+
+  local log_file="$project/.meta/steps/$run_id/step-${step_num}.log"
+  if [[ -f "$log_file" ]]; then
+    lines+=("Log: ${log_file}")
+  else
+    lines+=("Log: (none)")
+  fi
+
+  local exit_file="$project/.meta/steps/$run_id/step-${step_num}.exit"
+  if [[ -f "$exit_file" ]]; then
+    local exit_code
+    exit_code=$(cat "$exit_file" 2>/dev/null || true)
+    if [[ -n "$exit_code" ]]; then
+      lines+=("Exit: ${exit_file} (${exit_code})")
+    else
+      lines+=("Exit: ${exit_file}")
+    fi
+  else
+    lines+=("Exit: ${exit_file} (missing)")
+  fi
+
+  if command -v git >/dev/null 2>&1 && git -C "$project" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    local git_status
+    git_status=$(git -C "$project" status -sb 2>/dev/null || true)
+    if [[ -n "$git_status" ]]; then
+      lines+=("Git status:")
+      while IFS= read -r line; do
+        lines+=("  ${line}")
+      done <<<"$git_status"
+    fi
+    lines+=("Diff: git -C \"$project\" diff")
+  fi
+
+  printf "%s\n" "${lines[@]}"
+}
+
+pipeline_has_parallel_groups() {
+  local i
+  for ((i=1; i<=WF_STEP_COUNT; i++)); do
+    if [[ -n "${WF_STEP_GROUP[$i]}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+ensure_parallelization_note() {
+  local project="$1"
+  local pipeline_name="$2"
+  local pipeline_file="$3"
+
+  if pipeline_has_parallel_groups; then
+    return 0
+  fi
+
+  local handoff_main="$project/.handoff.md"
+  if [[ -f "$handoff_main" ]]; then
+    if grep -q "^## Parallelization Decision" "$handoff_main" 2>/dev/null; then
+      return 0
+    fi
+  fi
+
+  {
+    echo ""
+    echo "## Parallelization Decision"
+    if [[ -n "$pipeline_name" ]]; then
+      echo ""
+      echo "**Pipeline:** ${pipeline_name}"
+    fi
+    if [[ -n "$pipeline_file" ]]; then
+      echo "**Pipeline file:** ${pipeline_file}"
+    fi
+    echo "**Parallel groups:** none (no PARALLEL_GROUP entries detected)"
+    echo "**Reason:** [Why parallelism is unsafe or not applicable]"
+    echo "**Revisit point:** [When to re-evaluate parallelism]"
+  } >> "$handoff_main"
+}
+
+pipeline_log_file() {
+  local project="$1"
+  local run_id="$2"
+  printf "%s/.meta/steps/%s/pipeline.log" "$project" "$run_id"
+}
+
 pipeline_switch() {
   local project="$1"
   local run_id="$2"
@@ -178,6 +345,8 @@ pipeline_switch() {
   for ((i=1; i<=WF_STEP_COUNT; i++)); do
     state_set "$state_file" "step_${i}" "pending"
   done
+
+  ensure_parallelization_note "$project" "$name" "$saved"
 
   echo ""
   echo "Switched to pipeline: $name"
@@ -325,6 +494,7 @@ control_run() {
 
   local pipeline_name
   pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
+  ensure_parallelization_note "$project" "$pipeline_name" "$pipeline"
 
   local state_file="$project/.meta/state.${run_id}"
   if [[ ! -f "$state_file" ]]; then
@@ -381,8 +551,12 @@ control_run() {
         if [[ "$gate_status" != "done" ]]; then
           local agent
           agent="${WF_STEP_AGENT[$idx]}"
+          local cli_for_gate
+          cli_for_gate=$(select_cli "${WF_STEP_CLI[$idx]}" "$default_cli")
+          local prompt_for_gate
+          prompt_for_gate="${WF_STEP_PROMPT[$idx]}"
           local decision
-          decision=$(gate_prompt "QUALITY GATE after step ${idx} (${agent})")
+          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")")
 
           case "$decision" in
             approve)
@@ -548,8 +722,12 @@ control_run() {
         if [[ "${WF_STEP_GATE[$gate_step]}" == "gate" ]]; then
           local agent
           agent="${WF_STEP_AGENT[$gate_step]}"
+          local cli_for_gate
+          cli_for_gate=$(select_cli "${WF_STEP_CLI[$gate_step]}" "$default_cli")
+          local prompt_for_gate
+          prompt_for_gate="${WF_STEP_PROMPT[$gate_step]}"
           local decision
-          decision=$(gate_prompt "QUALITY GATE after step ${gate_step} (${agent})")
+          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$gate_step" "$agent" "$cli_for_gate" "$prompt_for_gate")")
 
           case "$decision" in
             approve)
@@ -618,8 +796,12 @@ control_run() {
     fi
 
     if [[ "${WF_STEP_GATE[$idx]}" == "gate" ]]; then
+      local cli_for_gate
+      cli_for_gate=$(select_cli "${WF_STEP_CLI[$idx]}" "$default_cli")
+      local prompt_for_gate
+      prompt_for_gate="${WF_STEP_PROMPT[$idx]}"
       local decision
-      decision=$(gate_prompt "QUALITY GATE after step ${idx} (${agent})")
+      decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")")
 
       case "$decision" in
         approve)
@@ -660,8 +842,33 @@ control_run() {
 
   state_set "$state_file" "current_step" "$WF_STEP_COUNT"
   state_set "$state_file" "status" "complete"
+  local finished_ts
+  finished_ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  local finished_epoch
+  finished_epoch="$(date +%s)"
+  state_set "$state_file" "finished" "$finished_ts"
+  state_set "$state_file" "finished_epoch" "$finished_epoch"
+  local started_epoch
+  started_epoch=$(state_get "$state_file" "started_epoch" || true)
+  local duration_sec=""
+  if [[ -n "$started_epoch" ]]; then
+    duration_sec=$((finished_epoch - started_epoch))
+    state_set "$state_file" "duration_sec" "$duration_sec"
+  fi
+  local pipeline_log
+  pipeline_log="$(pipeline_log_file "$project" "$run_id")"
+  if [[ -n "$duration_sec" ]]; then
+    echo "PIPELINE END: ${finished_ts} (duration ${duration_sec}s)" >> "$pipeline_log"
+  else
+    echo "PIPELINE END: ${finished_ts}" >> "$pipeline_log"
+  fi
   echo ""
   echo "Pipeline complete."
+  if [[ -n "$duration_sec" ]]; then
+    local pretty_duration
+    pretty_duration=$(format_duration "$duration_sec")
+    echo "Total duration: ${pretty_duration} (${duration_sec}s)"
+  fi
 }
 
 meta_run() {
@@ -762,12 +969,29 @@ meta_run() {
   rm -f "$meta_dir/next.pipeline" >/dev/null 2>&1 || true
 
   handoff_init "$project" "$task" "$run_id" "$pipeline_name"
+  ensure_parallelization_note "$project" "$pipeline_name" "$pipeline"
+
+  local pipeline_log
+  pipeline_log="$(pipeline_log_file "$project" "$run_id")"
+  local started_ts
+  started_ts="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  local started_epoch
+  started_epoch="$(date +%s)"
+  : > "$pipeline_log"
+  {
+    echo "PIPELINE START: ${started_ts}"
+    echo "Project: ${project}"
+    echo "Pipeline: ${pipeline_name}"
+    echo "Pipeline file: ${pipeline}"
+    echo "Run ID: ${run_id}"
+  } >> "$pipeline_log"
 
   local state_file="$meta_dir/state.${run_id}"
   state_set "$state_file" "pipeline" "$pipeline_name"
   state_set "$state_file" "pipeline_file" "$pipeline"
   state_set "$state_file" "session" "$session"
-  state_set "$state_file" "started" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  state_set "$state_file" "started" "$started_ts"
+  state_set "$state_file" "started_epoch" "$started_epoch"
   state_set "$state_file" "run_id" "$run_id"
   state_set "$state_file" "current_step" "0"
 

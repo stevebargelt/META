@@ -67,8 +67,13 @@ EXIT_FILE="$AGENT_EXIT_FILE"
 LOG_FILE="$log_file"
 CODEX_FLAGS="$codex_flags"
 
+start_ts=\$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+start_epoch=\$(date +%s)
+: > "\$LOG_FILE"
+echo "=== META STEP START: \${start_ts} ===" >> "\$LOG_FILE"
+
 if [[ "\$CLI" == "claude" ]]; then
-  if claude -p "\$(cat "\$PROMPT_FILE")" --system-prompt "\$(cat "\$SYSTEM_FILE")" --allowedTools "Bash Edit Read Write Glob Grep" ${unsafe_flag} >"\$LOG_FILE" 2>&1; then
+  if claude -p "\$(cat "\$PROMPT_FILE")" --system-prompt "\$(cat "\$SYSTEM_FILE")" --allowedTools "Bash Edit Read Write Glob Grep" ${unsafe_flag} >>"\$LOG_FILE" 2>&1; then
     exit_code=0
   else
     exit_code=\$?
@@ -77,7 +82,7 @@ elif [[ "\$CLI" == "claude-interactive" ]]; then
   claude "\$(cat "\$PROMPT_FILE")" --system-prompt "\$(cat "\$SYSTEM_FILE")" --allowedTools "Bash Edit Read Write Glob Grep" ${unsafe_flag}
   exit_code=\$?
 elif [[ "\$CLI" == "codex" ]]; then
-  if codex exec \$CODEX_FLAGS "\$(cat "\$PROMPT_FILE")" >"\$LOG_FILE" 2>&1; then
+  if codex exec \$CODEX_FLAGS "\$(cat "\$PROMPT_FILE")" >>"\$LOG_FILE" 2>&1; then
     exit_code=0
   else
     exit_code=\$?
@@ -86,9 +91,14 @@ elif [[ "\$CLI" == "codex-interactive" ]]; then
   codex \$CODEX_FLAGS "\$(cat "\$PROMPT_FILE")"
   exit_code=\$?
 else
-  echo "Unknown CLI: \$CLI" >"\$LOG_FILE" 2>&1
+  echo "Unknown CLI: \$CLI" >>"\$LOG_FILE" 2>&1
   exit_code=127
 fi
+
+end_ts=\$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+end_epoch=\$(date +%s)
+duration=\$((end_epoch - start_epoch))
+echo "=== META STEP END: \${end_ts} (exit \${exit_code}, duration \${duration}s) ===" >> "\$LOG_FILE"
 
 printf "%s" "\$exit_code" > "\$EXIT_FILE"
 exit "\$exit_code"
