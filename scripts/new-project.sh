@@ -132,6 +132,55 @@ Inherits: ../META/agents/base.md
 EOF
 fi
 
+README_FILE="${PROJECT_DIR}/README.md"
+README_TEMPLATE="${SCRIPT_DIR}/../prompts/readme-template.md"
+if [[ ! -f "$README_FILE" ]]; then
+  if [[ -f "$README_TEMPLATE" ]]; then
+    escaped_name=$(printf '%s' "$PROJECT_NAME" | sed 's/[\\/&]/\\\\&/g')
+    sed "s/\\[Project Name\\]/${escaped_name}/g" "$README_TEMPLATE" > "$README_FILE"
+  else
+    cat > "$README_FILE" <<EOF
+# ${PROJECT_NAME}
+
+[Add project description]
+EOF
+  fi
+fi
+
+ENV_EXAMPLE="${PROJECT_DIR}/.env.example"
+if [[ ! -f "$ENV_EXAMPLE" ]]; then
+  cat > "$ENV_EXAMPLE" <<'EOF'
+# Copy to .env and fill values
+# EXAMPLE_VAR=example
+EOF
+fi
+
+CI_FILE="${PROJECT_DIR}/.github/workflows/ci.yml"
+if [[ ! -f "$CI_FILE" ]]; then
+  mkdir -p "${PROJECT_DIR}/.github/workflows"
+  CI_TEMPLATE="${SCRIPT_DIR}/../patterns/deployment/ci-pipeline-node.md"
+  if [[ -f "$CI_TEMPLATE" ]]; then
+    awk 'BEGIN{in=0} /^```yaml/{in=1;next} /^```/{if(in){exit}} in{print}' "$CI_TEMPLATE" > "$CI_FILE"
+  else
+    cat > "$CI_FILE" <<'EOF'
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "CI stub. Configure per META/patterns/deployment/ci-pipeline-node.md"
+EOF
+  fi
+fi
+
 if [[ ! -e "${PROJECT_DIR}/CLAUDE.md" ]]; then
   (cd "$PROJECT_DIR" && ln -s "${AGENT_FILE}" CLAUDE.md)
 elif [[ -L "${PROJECT_DIR}/CLAUDE.md" ]]; then
