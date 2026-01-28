@@ -12,6 +12,8 @@ set -euo pipefail
 #  4. .env.example exists (documents required env vars)
 #  5. CI workflow exists (.github/workflows, .gitlab-ci, .circleci)
 #  6. Tests pass (npm test, supports monorepo)
+# 6a. Test coverage meets threshold (60% default, if coverage data exists)
+# 6b. No .only() in tests (prevents committed focused tests)
 #  7. TypeScript compiles (tsc --noEmit)
 #  8. Lint passes (npm run lint or eslint)
 #  9. OpenAPI valid (redocly lint if docs/openapi.yaml exists)
@@ -213,6 +215,100 @@ if [[ "$test_results" == "check_monorepo" ]]; then
   else
     result skip "Tests" "no package.json at root or in subdirs"
   fi
+fi
+
+# 6a. Test coverage threshold (optional, if coverage configured)
+# Looks for coverage summary in common locations and checks threshold
+COVERAGE_THRESHOLD=60
+
+check_coverage_in_dir() {
+  local dir="$1"
+  local summary_file=""
+
+  # Look for coverage summary in common locations
+  for path in "coverage/coverage-summary.json" "coverage/coverage-final.json" ".nyc_output/coverage-summary.json"; do
+    if [[ -f "$dir/$path" ]]; then
+      summary_file="$dir/$path"
+      break
+    fi
+  done
+
+  if [[ -z "$summary_file" ]]; then
+    echo "skip:no coverage data"
+    return
+  fi
+
+  # Try to extract line coverage percentage
+  if command -v jq >/dev/null 2>&1; then
+    local coverage
+    coverage=$(jq -r '.total.lines.pct // .total.statements.pct // empty' "$summary_file" 2>/dev/null)
+    if [[ -n "$coverage" ]] && [[ "$coverage" != "null" ]]; then
+      # Compare coverage to threshold (using awk for float comparison)
+      if awk "BEGIN {exit !($coverage >= $COVERAGE_THRESHOLD)}"; then
+        echo "pass:${coverage}%"
+      else
+        echo "fail:${coverage}% < ${COVERAGE_THRESHOLD}%"
+      fi
+    else
+      echo "skip:could not parse coverage"
+    fi
+  else
+    echo "skip:jq not installed"
+  fi
+}
+
+# Only check coverage if tests passed
+if [[ "$test_results" == "root_pass" ]]; then
+  coverage_result=$(check_coverage_in_dir ".")
+  case "$coverage_result" in
+    pass:*) result pass "Coverage" "${coverage_result#pass:}" ;;
+    fail:*) result fail "Coverage" "${coverage_result#fail:}" ;;
+    skip:*) result skip "Coverage" "${coverage_result#skip:}" ;;
+  esac
+elif [[ "$test_results" == "check_monorepo" ]] && [[ ${#monorepo_dirs[@]} -gt 0 ]]; then
+  coverage_checked=false
+  for subdir in "${monorepo_dirs[@]}"; do
+    coverage_result=$(check_coverage_in_dir "$subdir")
+    case "$coverage_result" in
+      pass:*)
+        result pass "Coverage ($subdir)" "${coverage_result#pass:}"
+        coverage_checked=true
+        ;;
+      fail:*)
+        result fail "Coverage ($subdir)" "${coverage_result#fail:}"
+        coverage_checked=true
+        ;;
+    esac
+  done
+  if [[ "$coverage_checked" == "false" ]]; then
+    result skip "Coverage" "no coverage data in monorepo subdirs"
+  fi
+else
+  result skip "Coverage" "tests did not pass"
+fi
+
+# 6b. No .only() in tests (prevents accidentally committed focused tests)
+test_dirs=""
+for d in test tests __tests__ src; do
+  [[ -d "$d" ]] && test_dirs="$test_dirs $d"
+done
+# Also check monorepo subdirs
+for subdir in server client backend frontend; do
+  for d in "$subdir/test" "$subdir/tests" "$subdir/__tests__" "$subdir/src"; do
+    [[ -d "$d" ]] && test_dirs="$test_dirs $d"
+  done
+done
+
+if [[ -n "$test_dirs" ]]; then
+  # Look for .only( in test files
+  if grep -rl "\.only(" $test_dirs --include="*.test.*" --include="*.spec.*" 2>/dev/null | head -1 >/dev/null; then
+    only_files=$(grep -rl "\.only(" $test_dirs --include="*.test.*" --include="*.spec.*" 2>/dev/null | wc -l | tr -d ' ')
+    result fail "Focused tests" ".only() found in $only_files file(s)"
+  else
+    result pass "Focused tests" "no .only() calls found"
+  fi
+else
+  result skip "Focused tests" "no test directories found"
 fi
 
 # 7. TypeScript compiles (if tsconfig.json exists)
