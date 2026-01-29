@@ -21,7 +21,7 @@ How to handle conversation context limits and long sessions.
 
 ### 1. Capture Current State
 
-Write `.handoff.md` in the project root using the unified template at `prompts/handoff-template.md` (type: `context-reset`). This captures working state, in-progress work, decisions, key files, and the single next step.
+Write `.meta/handoff.md` in the project root using the unified template at `prompts/handoff-template.md` (type: `context-reset`). This captures working state, in-progress work, decisions, key files, and the single next step.
 
 ### 2. Commit Your Work
 
@@ -59,7 +59,7 @@ Can ignore:
 
 ## Starting Fresh Session
 
-Read `.handoff.md` first. It contains project context, state, key files, and the next step. Then load files on demand — don't dump everything at once.
+Read `.meta/handoff.md` first. It contains project context, state, key files, and the next step. Then load files on demand — don't dump everything at once.
 
 ### Progressive Context Loading
 
@@ -72,19 +72,19 @@ Don't dump everything at once:
 
 ## Model Switching
 
-If switching models mid-project, include the model name and reason in `.handoff.md`. Keep the same handoff format — it works across all models.
+If switching models mid-project, include the model name and reason in `.meta/handoff.md`. Keep the same handoff format — it works across all models.
 
 ## Quick Reference
 
 ### Before Reset Checklist
 
-- [ ] Write `.handoff.md` (see `prompts/handoff-template.md`)
+- [ ] Write `.meta/handoff.md` (see `prompts/handoff-template.md`)
 - [ ] Commit current work
 - [ ] Update project AGENTS.md if needed
 
 ### Fresh Session
 
-1. Read `.handoff.md`
+1. Read `.meta/handoff.md`
 2. Load key files on demand
 3. Continue from Next Step
 
@@ -97,6 +97,6 @@ If switching models mid-project, include the model name and reason in `.handoff.
 
 ### Tools
 
-- `.handoff.md` — State capture (see `prompts/handoff-template.md`)
+- `.meta/handoff.md` — State capture (see `prompts/handoff-template.md`)
 - Git commits — State checkpoints
-- ARCHITECTURE.md — Design context
+- docs/ARCHITECTURE.md — Design context

@@ -147,7 +147,7 @@ Architect will create:
 - Implementation order
 - Data model (ER diagram)
 
-Save this as `ARCHITECTURE.md` in your project.
+Save this as `docs/ARCHITECTURE.md` in your project.
 
 **Template available at:**
 `META/patterns/project-structures/ARCHITECTURE-template.md`
@@ -158,7 +158,7 @@ If you plan to run parallel workstreams, create a minimal contract stub first:
 
 1. Use `META/prompts/contract-stub.md` (OpenAPI required for parallel work)
 2. Save to `docs/openapi.yaml` (fallback only with explicit justification)
-3. Update `.handoff.md` with the contract stub summary
+3. Update `.meta/handoff.md` with the contract stub summary
 4. OpenAPI validation is automatic via `META/scripts/quality-gate.sh`
 
 ### 5c. Parallelization Planning (Required for multi-agent runs)
@@ -167,9 +167,9 @@ Before implementation starts, decide what can run in parallel and why:
 
 1. Identify independent workstreams (e.g., client vs server)
 2. Assign `PARALLEL_GROUP` labels in the pipeline
-3. If nothing is parallelizable, document the reason in `.handoff.md`
+3. If nothing is parallelizable, document the reason in `.meta/handoff.md`
 
-Template for `.handoff.md`:
+Template for `.meta/handoff.md`:
 
 ```markdown
 ## Parallelization Decision
@@ -213,11 +213,17 @@ project-name/
 ├── AGENTS.md           # Agent definition
 ├── CLAUDE.md           # Symlink to AGENTS.md (tool compatibility)
 ├── README.md           # Quick start
-├── ARCHITECTURE.md     # System design (if applicable)
 ├── src/                # Source code
 ├── tests/              # Tests
-└── docs/               # Extended documentation (if needed)
+├── docs/               # Documentation
+│   ├── ARCHITECTURE.md # System design (if applicable)
+│   └── PRD.md          # Product requirements
+├── config/             # Tool configurations (eslint, Docker, etc.)
+└── .meta/              # Orchestration state (gitignored)
+    └── handoff.md      # Agent handoff state
 ```
+
+See `META/patterns/project-structures/config-directory.md` for config consolidation guidance.
 
 Don't create elaborate structures upfront.
 
@@ -297,7 +303,7 @@ Don't include:
 Don't maintain long "what we did" lists in AGENTS.md. Use:
 - Git commits for what changed
 - Git tags for milestones
-- ARCHITECTURE.md for design decisions
+- docs/ARCHITECTURE.md for design decisions
 
 ## Milestones
 

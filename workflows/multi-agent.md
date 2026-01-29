@@ -62,7 +62,7 @@ How to coordinate multiple specialized agents on complex tasks.
 └─────────────┘
 ```
 
-**Handoff:** Use `.handoff.md` (see `prompts/handoff-template.md`, type: `agent-handoff`). Outgoing agent writes it; incoming agent reads it first.
+**Handoff:** Use `.meta/handoff.md` (see `prompts/handoff-template.md`, type: `agent-handoff`). Outgoing agent writes it; incoming agent reads it first.
 
 ## Automated Execution
 
@@ -143,7 +143,7 @@ Pipelines live in `workflows/pipelines/`. See `scripts/README.md` for available 
 
 ## Handoff Format
 
-Use the unified handoff template at `prompts/handoff-template.md`. Agents share state through `.handoff.md` in the project root.
+Use the unified handoff template at `prompts/handoff-template.md`. Agents share state through `.meta/handoff.md` in the project root.
 
 ## Parallel Execution
 
@@ -177,7 +177,7 @@ When tasks are independent:
 - Same codebase area (merge conflicts)
 - Benefits don't justify coordination overhead
 
-**Requirement:** If tasks can run in parallel, assign `PARALLEL_GROUP` labels in the pipeline. If you plan parallel workstreams, create a contract stub first (use `META/prompts/contract-stub.md`). OpenAPI (`docs/openapi.yaml`) is required unless explicitly justified. OpenAPI validation is automatic via `META/scripts/quality-gate.sh`. If no OpenAPI, explicitly justify why in `.handoff.md`.
+**Requirement:** If tasks can run in parallel, assign `PARALLEL_GROUP` labels in the pipeline. If you plan parallel workstreams, create a contract stub first (use `META/prompts/contract-stub.md`). OpenAPI (`docs/openapi.yaml`) is required unless explicitly justified. OpenAPI validation is automatic via `META/scripts/quality-gate.sh`. If no OpenAPI, explicitly justify why in `.meta/handoff.md`.
 
 ## Quality Gates
 
@@ -244,14 +244,14 @@ Instead of long context:
 
 1. **Create intermediate docs**
    ```
-   ARCHITECTURE.md — Architect's design
+   docs/ARCHITECTURE.md — Architect's design
    REVIEW.md — Reviewer's findings
    DECISIONS.md — Key choices
    ```
 
 2. **Reference them in handoffs**
    ```markdown
-   See ARCHITECTURE.md section "Database Design"
+   See docs/ARCHITECTURE.md section "Database Design"
    ```
 
 3. **Update as you go**
@@ -279,7 +279,7 @@ See `learnings/model-comparison.md` for latest findings.
 3. Reference files rather than pasting content
 4. Include specific task for this agent
 
-If switching models, include model name and reason in `.handoff.md`.
+If switching models, include model name and reason in `.meta/handoff.md`.
 
 ## Orchestrator Role
 

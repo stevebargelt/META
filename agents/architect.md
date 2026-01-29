@@ -328,7 +328,7 @@ erDiagram
 
 ### Where to Save Diagrams
 
-**In ARCHITECTURE.md:**
+**In docs/ARCHITECTURE.md:**
 ```markdown
 # MyProject Architecture
 
@@ -347,10 +347,10 @@ sequenceDiagram
 ```
 ```
 
-**Or in separate files:**
+**Or with separate diagram files:**
 ```
 docs/
-├── architecture.md
+├── ARCHITECTURE.md
 ├── diagrams/
 │   ├── system-overview.mmd
 │   ├── auth-flow.mmd
