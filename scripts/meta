@@ -5,6 +5,7 @@ usage() {
   cat <<'USAGE'
 Usage:
   meta run <pipeline> --project <path> --task "description" [options]
+  meta run <pipeline> --project <path> --continue [options]
   meta status [--project <path>] [--run-id <id>]
   meta resume [--project <path>] [--run-id <id>] [options]
   meta abort [--project <path>] [--run-id <id>]
@@ -21,11 +22,13 @@ Options:
   --no-auto-retry        Prompt for retry on failure (default: auto-retry)
   --max-retries <n>      Max retries before abort (default: 3)
   --dry-run              Show pipeline steps without running
+  --continue             Continue with existing handoff.md (for follow-on pipelines)
 
 Notes:
   - Pipelines live in workflows/pipelines/*.pipeline
   - By default, failed steps auto-retry up to 3 times then abort
   - Use --no-auto-retry to get interactive retry prompts
+  - Use --continue for follow-on pipelines (e.g., .meta/next.pipeline)
 USAGE
 }
 
@@ -478,6 +481,8 @@ run_step_serial() {
           fi
         fi
       fi
+      # Auto-close step window on success (logs saved to .meta/steps/)
+      tmux_kill_window "$session" "step-${step_num}"
       return 0
     fi
 
@@ -788,6 +793,8 @@ control_run() {
         if [[ "$wait_result" == "success" ]]; then
           state_set "$state_file" "step_${step}" "done"
           completed_steps+=("$step")
+          # Auto-close step window on success
+          tmux_kill_window "$session" "step-${step}"
         else
           state_set "$state_file" "step_${step}" "failed"
           failed_steps+=("${step}:${wait_result}")
@@ -1050,6 +1057,7 @@ meta_run() {
   local auto_retry=true
   local max_retries=3
   local dry_run=false
+  local continue_mode=false
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -1097,6 +1105,10 @@ meta_run() {
         dry_run=true
         shift
         ;;
+      --continue)
+        continue_mode=true
+        shift
+        ;;
       -h|--help)
         usage
         exit 0
@@ -1107,7 +1119,10 @@ meta_run() {
     esac
   done
 
-  [[ -z "$task" ]] && die "--task is required"
+  # Require either --task or --continue
+  if [[ -z "$task" && "$continue_mode" == false ]]; then
+    die "--task is required (or use --continue for follow-on pipelines)"
+  fi
 
   project=$(resolve_project "$project")
   pipeline=$(resolve_pipeline "$pipeline")
@@ -1160,10 +1175,19 @@ meta_run() {
 
   local meta_dir="$project/.meta"
   mkdir -p "$meta_dir/steps/$run_id"
-  rm -f "$meta_dir/next.pipeline" >/dev/null 2>&1 || true
 
-  handoff_init "$project" "$task" "$run_id" "$pipeline_name"
-  ensure_parallelization_note "$project" "$pipeline_name" "$pipeline"
+  if [[ "$continue_mode" == true ]]; then
+    # Continue mode: preserve existing handoff.md, just verify it exists
+    if [[ ! -f "$project/.meta/handoff.md" ]]; then
+      die "--continue specified but no handoff.md found in $project/.meta/"
+    fi
+    echo "Continuing with existing handoff.md"
+  else
+    # New run: clean up old next.pipeline and initialize handoff
+    rm -f "$meta_dir/next.pipeline" >/dev/null 2>&1 || true
+    handoff_init "$project" "$task" "$run_id" "$pipeline_name"
+    ensure_parallelization_note "$project" "$pipeline_name" "$pipeline"
+  fi
 
   local pipeline_log
   pipeline_log="$(pipeline_log_file "$project" "$run_id")"
