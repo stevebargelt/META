@@ -275,7 +275,7 @@ See `workflows/context-reset.md`.
 
 ### Switching Models
 
-If switching models, include model name and reason in `.handoff.md`. See `learnings/model-comparison.md` for model strengths.
+If switching models, include model name and reason in `.meta/handoff.md`. See `learnings/model-comparison.md` for model strengths.
 
 ## Recommended Project Layout
 
@@ -285,10 +285,17 @@ If switching models, include model name and reason in `.handoff.md`. See `learni
 ├── project-1/
 │   ├── AGENTS.md                 # Inherits: ../META/agents/base.md
 │   ├── README.md
+│   ├── .meta/                    # Orchestration state (gitignored)
+│   │   └── handoff.md            # Agent handoff state
 │   └── src/
 ├── project-2/
 │   ├── AGENTS.md                 # Inherits: ../META/agents/architect.md
-│   ├── ARCHITECTURE.md           # From architect agent
+│   ├── docs/
+│   │   ├── ARCHITECTURE.md       # From architect agent
+│   │   └── PRD.md
+│   ├── config/                   # Tool configurations
+│   │   ├── eslint.config.js
+│   │   └── Dockerfile
 │   └── src/
 └── project-3/
     └── AGENTS.md

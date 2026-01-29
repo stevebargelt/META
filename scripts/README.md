@@ -28,8 +28,10 @@ Pipelines live in `workflows/pipelines/`.
 ```
 
 Creates a project in `~/code`, writes a `KICKOFF.md`, and prints the kickoff prompt.
-Also creates `AGENTS.md` (placeholder) and a `CLAUDE.md` symlink.
+Also creates `AGENTS.md` (placeholder), a `CLAUDE.md` symlink, and scaffolds `docs/`, `config/`, and `.meta/` directories.
 The kickoff flow will overwrite `AGENTS.md` and create `docs/PRD.md`.
+
+See `patterns/project-structures/config-directory.md` for config consolidation guidance.
 
 By default, this also launches the `meta` orchestrator pipeline (`project`).
 Use `--no-orchestrate` to keep the original manual kickoff flow.
@@ -56,7 +58,7 @@ Options:
 ./scripts/agent.sh architect --project ~/code/my-project
 ```
 
-Creates `.handoff.md` (or `.handoff-<stream>.md`) for a target agent.
+Creates `.meta/handoff.md` (or `.meta/handoff-<stream>.md`) for a target agent.
 
 ## add-pattern.sh
 

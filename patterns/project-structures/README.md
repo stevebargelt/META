@@ -22,6 +22,13 @@ Full project templates and structure patterns.
 - CLI tool structure
 - Library/package structure
 
+### Organization Patterns
+
+- **`config-directory.md`** — Consolidate tool configs into `config/` directory
+  - Reduces root clutter (eslint, prettier, Docker, etc.)
+  - Includes tool-specific guidance and stub patterns
+  - Migration path for existing projects
+
 ## Usage
 
 Use these when starting new projects:
