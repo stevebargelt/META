@@ -3,9 +3,9 @@ description: Focused bug fix flow
 timeout_min: 45
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
-0 | base     | - | auto | - | 5  | Preflight check: Run META/scripts/preflight-gate.sh --project . and report results in .meta/handoff.md. If blockers exist, stop and list what needs to be fixed.
-1 | debugger | - | auto | - | -  | Diagnose the root cause from .meta/handoff.md. Update .meta/handoff.md with findings.
-2 | base     | - | auto | - | -  | Implement fix and add regression test. Update .meta/handoff.md with changes.
-3 | reviewer | - | gate | - | -  | Review fix for correctness and security. Update .meta/handoff.md with findings.
-4 | base     | - | auto | - | -  | Run META/prompts/definition-of-done-checklist.md. Note gaps in .meta/handoff.md.
-5 | base     | - | gate | - | -  | Final quality gate. Run META/scripts/quality-gate.sh --project . and report results in .meta/handoff.md. If checks fail, fix what you can and re-run.
+1 | base     | - | auto | - | 5  | Preflight check: Run META/scripts/preflight-gate.sh --project . and report results in .meta/handoff.md. If blockers exist, stop and list what needs to be fixed.
+2 | debugger | - | auto | - | -  | Diagnose the root cause from .meta/handoff.md. Update .meta/handoff.md with findings.
+3 | base     | - | auto | - | -  | Implement fix and add regression test. Update .meta/handoff.md with changes.
+4 | reviewer | - | gate | - | -  | Review fix for correctness and security. Update .meta/handoff.md with findings.
+5 | base     | - | auto | - | -  | Run META/prompts/definition-of-done-checklist.md. Note gaps in .meta/handoff.md.
+6 | base     | - | gate | - | -  | Final quality gate. Run META/scripts/quality-gate.sh --project . and report results in .meta/handoff.md. If checks fail, fix what you can and re-run.

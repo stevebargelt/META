@@ -3,12 +3,12 @@ description: Full feature development flow
 timeout_min: 60
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
-0 | base            | - | auto | - | 5  | Preflight check: Run META/scripts/preflight-gate.sh --project . and report results in .meta/handoff.md. If blockers exist, stop and list what needs to be fixed.
-1 | product-manager | - | auto | - | 30 | Create PRD from task in .meta/handoff.md. Write docs/PRD.md and update .meta/handoff.md with summary.
-2 | architect       | - | gate | - | -  | Design architecture from PRD. Create docs/ARCHITECTURE.md and update .meta/handoff.md.
-3 | tester          | - | auto | - | -  | Create test plan and skeleton tests. Update .meta/handoff.md with test plan and files.
-4 | base            | - | auto | - | -  | Implement feature, make tests pass, update .meta/handoff.md with changes.
-5 | reviewer        | - | gate | - | -  | Review all changes for quality and security. Update .meta/handoff.md with findings.
-6 | documenter      | - | auto | - | -  | Update documentation and summarize changes in .meta/handoff.md.
-7 | base            | - | auto | - | -  | Run META/prompts/definition-of-done-checklist.md. Fix safe gaps or list blockers in .meta/handoff.md.
-8 | base            | - | gate | - | -  | Final quality gate. Run META/scripts/quality-gate.sh --project . and report results in .meta/handoff.md. If checks fail, fix what you can and re-run.
+1 | base            | - | auto | - | 5  | Preflight check: Run META/scripts/preflight-gate.sh --project . and report results in .meta/handoff.md. If blockers exist, stop and list what needs to be fixed.
+2 | product-manager | - | auto | - | 30 | Create PRD from task in .meta/handoff.md. Write docs/PRD.md and update .meta/handoff.md with summary.
+3 | architect       | - | gate | - | -  | Design architecture from PRD. Create docs/ARCHITECTURE.md and update .meta/handoff.md.
+4 | tester          | - | auto | - | -  | Create test plan and skeleton tests. Update .meta/handoff.md with test plan and files.
+5 | base            | - | auto | - | -  | Implement feature, make tests pass, update .meta/handoff.md with changes.
+6 | reviewer        | - | gate | - | -  | Review all changes for quality and security. Update .meta/handoff.md with findings.
+7 | documenter      | - | auto | - | -  | Update documentation and summarize changes in .meta/handoff.md.
+8 | base            | - | auto | - | -  | Run META/prompts/definition-of-done-checklist.md. Fix safe gaps or list blockers in .meta/handoff.md.
+9 | base            | - | gate | - | -  | Final quality gate. Run META/scripts/quality-gate.sh --project . and report results in .meta/handoff.md. If checks fail, fix what you can and re-run.

@@ -3,11 +3,11 @@ description: Design-heavy refactor flow
 timeout_min: 90
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
-0 | base      | - | auto | - | 5  | Preflight check: Run META/scripts/preflight-gate.sh --project . and report results in .meta/handoff.md. If blockers exist, stop and list what needs to be fixed.
-1 | architect | - | auto | - | -  | Plan refactor approach and risks based on .meta/handoff.md. Update .meta/handoff.md.
-2 | reviewer  | - | auto | A | -  | Review current code for risks and pitfalls. Write to .meta/handoff-step-2.md.
-3 | tester    | - | auto | A | -  | Identify coverage gaps and propose tests. Write to .meta/handoff-step-3.md.
-4 | base      | - | auto | - | -  | Execute refactor and update tests. Update .meta/handoff.md.
-5 | reviewer  | - | gate | - | -  | Review refactor for regressions and quality. Update .meta/handoff.md.
-6 | base      | - | auto | - | -  | Run META/prompts/definition-of-done-checklist.md. Note gaps in .meta/handoff.md.
-7 | base      | - | gate | - | -  | Final quality gate. Run META/scripts/quality-gate.sh --project . and report results in .meta/handoff.md. If checks fail, fix what you can and re-run.
+1 | base      | - | auto | - | 5  | Preflight check: Run META/scripts/preflight-gate.sh --project . and report results in .meta/handoff.md. If blockers exist, stop and list what needs to be fixed.
+2 | architect | - | auto | - | -  | Plan refactor approach and risks based on .meta/handoff.md. Update .meta/handoff.md.
+3 | reviewer  | - | auto | A | -  | Review current code for risks and pitfalls. Write to .meta/handoff-step-3.md.
+4 | tester    | - | auto | A | -  | Identify coverage gaps and propose tests. Write to .meta/handoff-step-4.md.
+5 | base      | - | auto | - | -  | Execute refactor and update tests. Update .meta/handoff.md.
+6 | reviewer  | - | gate | - | -  | Review refactor for regressions and quality. Update .meta/handoff.md.
+7 | base      | - | auto | - | -  | Run META/prompts/definition-of-done-checklist.md. Note gaps in .meta/handoff.md.
+8 | base      | - | gate | - | -  | Final quality gate. Run META/scripts/quality-gate.sh --project . and report results in .meta/handoff.md. If checks fail, fix what you can and re-run.
