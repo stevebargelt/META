@@ -131,6 +131,8 @@ if [[ -e "$PROJECT_DIR" ]]; then
 fi
 
 mkdir -p "${PROJECT_DIR}/docs"
+mkdir -p "${PROJECT_DIR}/config"
+mkdir -p "${PROJECT_DIR}/.meta"
 
 if [[ ! -f "${PROJECT_DIR}/${AGENT_FILE}" ]]; then
   cat > "${PROJECT_DIR}/${AGENT_FILE}" <<'EOF'
@@ -203,6 +205,9 @@ coverage/
 *.sqlite
 *.db
 data/
+
+# META orchestration state
+.meta/
 EOF
 fi
 
