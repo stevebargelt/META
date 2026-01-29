@@ -112,7 +112,7 @@ Limit to 3-5 competitors to avoid analysis paralysis.
 
 ## Handoff to Product Manager
 
-When complete, update `.handoff.md` with:
+When complete, update `.meta/handoff.md` with:
 
 ```markdown
 ## Competitive Research Complete
@@ -146,4 +146,4 @@ Before completing:
 - [ ] Feature matrix includes "Our Plan" column
 - [ ] Table-stakes vs differentiation clearly separated
 - [ ] Specific recommendations provided
-- [ ] `.handoff.md` updated with summary
+- [ ] `.meta/handoff.md` updated with summary

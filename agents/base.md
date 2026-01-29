@@ -95,8 +95,8 @@ For cross-cutting requirements (observability, tracing, security, testing, error
 
 ## Context Management
 
-- When context gets long: write `.handoff.md` (see `prompts/handoff-template.md`) and suggest reset
-- When resuming: read `.handoff.md` first, then load key files on demand
+- When context gets long: write `.meta/handoff.md` (see `prompts/handoff-template.md`) and suggest reset
+- When resuming: read `.meta/handoff.md` first, then load key files on demand
 - Prefer file references over pasting full contents into conversation
 - After each discrete unit of work, assess whether context is still Green
 

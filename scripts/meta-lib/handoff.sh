@@ -8,7 +8,8 @@ handoff_init() {
   local run_id="$3"
   local pipeline_name="$4"
 
-  local file="$project/.handoff.md"
+  mkdir -p "$project/.meta"
+  local file="$project/.meta/handoff.md"
 
   cat > "$file" <<EOF_HANDOFF
 # Handoff
@@ -32,7 +33,8 @@ EOF_HANDOFF
 handoff_step_file() {
   local project="$1"
   local step_num="$2"
-  printf "%s/.handoff-step-%s.md" "$project" "$step_num"
+  mkdir -p "$project/.meta"
+  printf "%s/.meta/handoff-step-%s.md" "$project" "$step_num"
 }
 
 handoff_merge_step() {
@@ -53,7 +55,7 @@ handoff_merge_step() {
     return 0
   fi
 
-  local handoff_main="$project/.handoff.md"
+  local handoff_main="$project/.meta/handoff.md"
   if [[ ! -f "$handoff_main" ]]; then
     touch "$handoff_main"
   fi

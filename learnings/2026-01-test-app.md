@@ -28,7 +28,7 @@ Production‑quality TODO app scaffold with Supabase‑based auth architecture: 
 
 ### Process Wins
 - Tmux orchestration made multi‑agent flow tangible and repeatable.
-- `.handoff.md` captured decisions and kept agents aligned.
+- `.meta/handoff.md` captured decisions and kept agents aligned.
 
 ## What Didn't Work
 

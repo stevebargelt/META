@@ -5,7 +5,7 @@ usage() {
   cat <<'USAGE'
 Usage: agent.sh <agent-name> [--project <path>] [--stream <name>]
 
-Creates a .handoff.md (or .handoff-<stream>.md) with a prefilled agent-handoff
+Creates a .meta/handoff.md (or .meta/handoff-<stream>.md) with a prefilled agent-handoff
 template in the target project directory.
 
 Examples:
@@ -57,9 +57,8 @@ if [[ ! -f "$AGENT_FILE" ]]; then
   exit 1
 fi
 
-HANDOFF_FILE="${PROJECT_DIR}/.handoff${STREAM:+-${STREAM}}.md"
-
-mkdir -p "$PROJECT_DIR"
+mkdir -p "$PROJECT_DIR/.meta"
+HANDOFF_FILE="${PROJECT_DIR}/.meta/handoff${STREAM:+-${STREAM}}.md"
 
 cat > "$HANDOFF_FILE" <<EOF
 # Handoff

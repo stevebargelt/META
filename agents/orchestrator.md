@@ -97,7 +97,7 @@ Use multi-agent approach when:
 
 ## Context Handoff Format
 
-Use the unified handoff template at `prompts/handoff-template.md`. All handoffs — between agents, across context resets, and during model switches — use `.handoff.md` in the project root.
+Use the unified handoff template at `prompts/handoff-template.md`. All handoffs — between agents, across context resets, and during model switches — use `.meta/handoff.md` in the project root.
 
 For task-specific handoffs within a workflow (not full context handoffs), a lighter format works:
 
@@ -115,9 +115,9 @@ For task-specific handoffs within a workflow (not full context handoffs), a ligh
 The orchestrator monitors context budget across the entire workflow:
 
 - Before assigning a task likely to be large, plan a checkpoint
-- Between phases: write `.handoff.md` to capture workflow state
-- For mid-task resets: the active agent writes `.handoff.md`; orchestrator resumes from it
-- For parallel workstreams: use `.handoff-[stream-name].md` per stream, consolidate at sync points
+- Between phases: write `.meta/handoff.md` to capture workflow state
+- For mid-task resets: the active agent writes `.meta/handoff.md`; orchestrator resumes from it
+- For parallel workstreams: use `.meta/handoff-[stream-name].md` per stream, consolidate at sync points
 
 ## Parallel Execution
 
@@ -146,7 +146,7 @@ When generating a pipeline, you must:
 - Default assumption: client and server workstreams can run in parallel after architecture
 - If any parallelism is planned, insert a **contract stub step** before parallel groups using `META/prompts/contract-stub.md`. OpenAPI (`docs/openapi.yaml`) is required unless explicitly justified.
 - OpenAPI validation is automatic via `META/scripts/quality-gate.sh` — no separate validation step needed.
-- If no parallelism is safe, explicitly state why in `.handoff.md` and add the template block below
+- If no parallelism is safe, explicitly state why in `.meta/handoff.md` and add the template block below
 - Ensure groups are scoped so agents do not edit the same files concurrently
 
 ### PARALLEL_GROUP Column Semantics
@@ -175,7 +175,7 @@ Different values (`backend` vs `frontend`) → they run one after another, not i
 
 **Rule:** To parallelize steps, give them the **same** `PARALLEL_GROUP` value.
 
-If no parallelism is possible, add this to `.handoff.md`:
+If no parallelism is possible, add this to `.meta/handoff.md`:
 
 ```markdown
 ## Parallelization Decision
@@ -211,7 +211,7 @@ Use `prompts/contract-stub.md` for these contracts.
 
 ```
 # After parallel group completes:
-validation | base | auto | - | 5 | Run `npm run build && npm test` at workspace root. Report failures in .handoff.md. If build fails, list specific errors for next agent to fix.
+validation | base | auto | - | 5 | Run `npm run build && npm test` at workspace root. Report failures in .meta/handoff.md. If build fails, list specific errors for next agent to fix.
 ```
 
 Why this matters:
@@ -294,7 +294,7 @@ Pipelines must include test steps for both backend and frontend:
 **Critical:** Do not skip frontend testing. Add a dedicated step:
 
 ```
-N | tester | auto | - | 20 | Frontend tests: Configure Vitest + Testing Library for client/. Add component tests for key user flows. Test at minimum: form submissions, list rendering, error states. Update .handoff.md with test counts.
+N | tester | auto | - | 20 | Frontend tests: Configure Vitest + Testing Library for client/. Add component tests for key user flows. Test at minimum: form submissions, list rendering, error states. Update .meta/handoff.md with test counts.
 ```
 
 Frontend test setup checklist:
@@ -303,7 +303,7 @@ Frontend test setup checklist:
 - Tests for: user interactions, data display, error handling, loading states
 - Minimum coverage: main pages, forms, and critical components
 
-If frontend tests are skipped, document why in `.handoff.md` (e.g., pure static site, no JS interactions).
+If frontend tests are skipped, document why in `.meta/handoff.md` (e.g., pure static site, no JS interactions).
 
 ## Decision Points
 

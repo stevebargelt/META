@@ -174,7 +174,7 @@ workflow_inject_research() {
   WF_STEP_GATE[$insert_before]="auto"
   WF_STEP_GROUP[$insert_before]=""
   WF_STEP_TIMEOUT[$insert_before]="30"
-  WF_STEP_PROMPT[$insert_before]="Research competitors using META/agents/product-researcher.md. Read .handoff.md for product context. Create docs/COMPETITIVE-ANALYSIS.md with feature matrix and recommendations. Update .handoff.md with key findings."
+  WF_STEP_PROMPT[$insert_before]="Research competitors using META/agents/product-researcher.md. Read .meta/handoff.md for product context. Create docs/COMPETITIVE-ANALYSIS.md with feature matrix and recommendations. Update .meta/handoff.md with key findings."
 
   WF_STEP_COUNT=$new_count
 

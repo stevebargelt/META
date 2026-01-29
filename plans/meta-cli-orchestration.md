@@ -18,7 +18,7 @@ description: Full feature development flow
 timeout_min: 60
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
-1 | product-manager | claude | auto | - | 30 | Create PRD from task in .handoff.md...
+1 | product-manager | claude | auto | - | 30 | Create PRD from task in .meta/handoff.md...
 2 | architect       | claude | gate | - | -  | Design architecture from PRD...
 3 | tester          | claude | auto | - | -  | Create test plan and skeleton tests...
 4 | base            | claude | auto | - | -  | Implement feature, make tests pass...
@@ -30,7 +30,7 @@ Parallel steps share a `PARALLEL_GROUP` value. Pipeline waits for all in group b
 Notes:
 - `timeout_min` sets the pipeline default; `TIMEOUT_MIN` overrides per step (`-` uses default).
 - Escape literal pipes in `PROMPT` as `\|`.
-- If parallelism is possible, `PARALLEL_GROUP` must be set; otherwise the orchestrator must explain why in `.handoff.md`.
+- If parallelism is possible, `PARALLEL_GROUP` must be set; otherwise the orchestrator must explain why in `.meta/handoff.md`.
 - If parallelism is planned, add a contract stub step first (use `META/prompts/contract-stub.md`). OpenAPI is required unless explicitly justified.
 - OpenAPI validation is automatic via `META/scripts/quality-gate.sh`.
 
@@ -102,9 +102,9 @@ cd "$PROJECT" && codex exec "$PROMPT" ; \
 
 The prompt includes:
 1. Agent role and agent definition file path
-2. Instruction to read `.handoff.md` first
+2. Instruction to read `.meta/handoff.md` first
 3. The step's specific task
-4. Instruction to update `.handoff.md` when done
+4. Instruction to update `.meta/handoff.md` when done
 
 ### Completion Detection
 
@@ -112,12 +112,12 @@ Sentinel file approach: each step wrapper writes `.meta/steps/<run_id>/step-N.ex
 
 ### Handoff Flow
 
-1. `meta run` writes initial `.handoff.md` with user's task
-2. Each agent reads `.handoff.md`, does work, updates `.handoff.md`
-3. For parallel steps: each writes `.handoff-step-N.md`, orchestrator merges at sync point into `.handoff.md` using deterministic, sectioned append:
+1. `meta run` writes initial `.meta/handoff.md` with user's task
+2. Each agent reads `.meta/handoff.md`, does work, updates `.meta/handoff.md`
+3. For parallel steps: each writes `.meta/handoff-step-N.md`, orchestrator merges at sync point into `.meta/handoff.md` using deterministic, sectioned append:
    - Adds a header `## Parallel Step <N> (<agent>) — <timestamp>` for each step
-   - Appends the full contents of `.handoff-step-N.md` under that header
-   - Keeps original `.handoff-step-N.md` files for traceability
+   - Appends the full contents of `.meta/handoff-step-N.md` under that header
+   - Keeps original `.meta/handoff-step-N.md` files for traceability
 4. Quality gates: orchestrator pauses, user reviews in control window, approves/retries/aborts
 
 ### State Persistence
@@ -189,11 +189,11 @@ $ meta run feature --project ~/code/my-app --task "Add JWT authentication with r
 # Window 0: control (shows progress)
 #
 # Step 1: product-manager → window "step-1-product-manager"
-#   claude runs, creates docs/PRD.md, updates .handoff.md
+#   claude runs, creates docs/PRD.md, updates .meta/handoff.md
 #   Completes → orchestrator proceeds
 #
 # Step 2: architect → window "step-2-architect"
-#   claude runs, creates ARCHITECTURE.md, updates .handoff.md
+#   claude runs, creates docs/ARCHITECTURE.md, updates .meta/handoff.md
 #   Completes → QUALITY GATE in control window
 #   User reviews, types "y"
 #
@@ -215,4 +215,4 @@ $ meta run feature --project ~/code/my-app --task "Add JWT authentication with r
 - Run full pipeline on a test project — verify each tmux window launches, sentinel files created, gates pause correctly
 - Test `meta abort` — verify cleanup of tmux session and temp files
 - Test `meta resume` — verify continuation from last completed step
-- Verify `.handoff.md` is updated between each step
+- Verify `.meta/handoff.md` is updated between each step

@@ -254,7 +254,7 @@ gate_message() {
     fi
   fi
 
-  local handoff_main="$project/.handoff.md"
+  local handoff_main="$project/.meta/handoff.md"
   lines+=("Handoff: ${handoff_main}")
 
   local step_handoff
@@ -337,7 +337,7 @@ ensure_parallelization_note() {
     return 0
   fi
 
-  local handoff_main="$project/.handoff.md"
+  local handoff_main="$project/.meta/handoff.md"
   if [[ -f "$handoff_main" ]]; then
     if grep -q "^## Parallelization Decision" "$handoff_main" 2>/dev/null; then
       return 0
@@ -427,7 +427,7 @@ step_launch() {
   window_name="step-${step_num}-${agent}"
 
   rm -f "$AGENT_EXIT_FILE" >/dev/null 2>&1 || true
-  if [[ "$handoff_file" == *".handoff-step-"* ]]; then
+  if [[ "$handoff_file" == *"handoff-step-"* ]]; then
     rm -f "$project/.meta/steps/$run_id/step-${step_num}.merged" >/dev/null 2>&1 || true
   fi
 
@@ -704,7 +704,7 @@ control_run() {
               prompt="${WF_STEP_PROMPT[$idx]}"
               local timeout_min
               timeout_min="${WF_STEP_TIMEOUT[$idx]}"
-              local handoff_file="$project/.handoff.md"
+              local handoff_file="$project/.meta/handoff.md"
 
               if ! run_step_serial "$session" "$project" "$run_id" "$idx" "$agent" "$cli" "$prompt" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
                 return 1
@@ -952,7 +952,7 @@ control_run() {
     local timeout_min
     timeout_min="${WF_STEP_TIMEOUT[$idx]}"
 
-    local handoff_file="$project/.handoff.md"
+    local handoff_file="$project/.meta/handoff.md"
 
     if ! run_step_serial "$session" "$project" "$run_id" "$idx" "$agent" "$cli" "$prompt" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
       return 1

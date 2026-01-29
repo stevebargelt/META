@@ -8,7 +8,7 @@ Provide a consistent handoff format so any incoming agent can resume work withou
 
 ## Rules
 
-- `.handoff.md` lives in project root, added to `.gitignore`
+- `.meta/handoff.md` lives in the `.meta/` directory, added to `.gitignore`
 - Always overwritten (current state, not history — history is in git)
 - Outgoing agent writes it; incoming agent reads it first
 - Keep it short — this is a launchpad, not a journal
@@ -54,7 +54,7 @@ Provide a consistent handoff format so any incoming agent can resume work withou
 ## Usage by Type
 
 ### Context Reset (type: `context-reset`)
-From/To are the same agent or model. Write `.handoff.md` before resetting. New session reads it first, then loads key files on demand.
+From/To are the same agent or model. Write `.meta/handoff.md` before resetting. New session reads it first, then loads key files on demand.
 
 ### Model Switch (type: `model-switch`)
 From is outgoing model, To is incoming model. Include model-specific notes in Reason if relevant (e.g., "switching to GPT-4 for debugging stack traces").
@@ -65,8 +65,8 @@ From is outgoing agent, To is incoming agent. Next Step should be the specific t
 ## Parallel Workstreams
 
 When running parallel agents, use per-stream files:
-- `.handoff-api.md`
-- `.handoff-frontend.md`
-- `.handoff-database.md`
+- `.meta/handoff-api.md`
+- `.meta/handoff-frontend.md`
+- `.meta/handoff-database.md`
 
-Consolidate into `.handoff.md` at sync points.
+Consolidate into `.meta/handoff.md` at sync points.
