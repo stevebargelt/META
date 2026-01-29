@@ -59,6 +59,12 @@ tmux_kill_session() {
   tmux kill-session -t "$session" >/dev/null 2>&1 || true
 }
 
+tmux_kill_window() {
+  local session="$1"
+  local window="$2"
+  tmux kill-window -t "$session:$window" >/dev/null 2>&1 || true
+}
+
 tmux_attach() {
   local session="$1"
   tmux attach -t "$session"
