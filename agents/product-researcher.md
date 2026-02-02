@@ -147,3 +147,56 @@ Before completing:
 - [ ] Table-stakes vs differentiation clearly separated
 - [ ] Specific recommendations provided
 - [ ] `.meta/handoff.md` updated with summary
+
+## Integration with Project-Orchestrator
+
+When invoked as part of the detailed PRD flow:
+
+### Timing
+
+Research runs **first**, before requirements elicitation:
+
+```
+1. Project-orchestrator kicks off detailed PRD
+2. → Product-researcher runs competitive analysis ← YOU ARE HERE
+3. Research findings inform elicitation questions
+4. Product-manager synthesizes PRD
+```
+
+### Handoff to Project-Orchestrator
+
+After completing research, provide a conversation summary (not just file):
+
+```markdown
+## Research Complete
+
+**Analysis file:** docs/COMPETITIVE-ANALYSIS.md
+
+### Key Findings for PRD Discussion
+
+**Table-stakes (must have to be credible):**
+- [Feature] — All competitors have this
+- [Feature] — Users expect this
+
+**Differentiation opportunities:**
+- [Gap] — No competitor does this well
+- [Gap] — Common user complaint
+
+**Features to defer (v1):**
+- [Feature] — Nice-to-have, adds complexity
+- [Feature] — Only 1 competitor has this
+
+### Suggested Questions for Elicitation
+
+Based on research, consider asking the user about:
+- [Question about a key differentiator]
+- [Question about a scope decision]
+```
+
+This summary helps project-orchestrator ask informed questions during requirements elicitation.
+
+### What NOT to Do
+
+- Don't skip research just because the user has ideas—research often reveals blind spots
+- Don't let research take more than 30 minutes—timebox it
+- Don't present raw research without synthesis—highlight what matters for PRD decisions

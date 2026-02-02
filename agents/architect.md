@@ -387,6 +387,136 @@ After architecture is approved:
 3. Note which patterns from `patterns/` apply
 4. Hand off to base agent or specialized agents
 
+## Detailed Mode
+
+When invoked by project-orchestrator in detailed mode, the workflow is more interactive:
+
+### Context You Receive
+
+- **Approved PRD** — `docs/PRD-<feature>.md` with clear requirements
+- **Elicitation answers** — Responses to architecture questions from `prompts/arch-detailed-questions.md`
+- **User priorities** — Explicit trade-off preferences (speed vs flexibility, etc.)
+- **Existing architecture** — Current `docs/ARCHITECTURE.md` if adding to existing project
+
+### Your Role in Detailed Mode
+
+1. **Explore options, don't just decide** — Present 2-3 viable approaches for significant decisions. Let the user choose.
+
+2. **Explain trade-offs clearly** — For each option, articulate:
+   - How it works (briefly)
+   - Pros and cons
+   - When it's the best choice
+   - Your recommendation and why
+
+3. **Support iteration** — Architecture will go through review loops:
+   - Present draft with diagrams
+   - Accept feedback and questions
+   - Revise and re-present
+   - Don't get attached to your first design
+
+### Options Presentation Format
+
+For each significant architectural decision:
+
+```markdown
+## Decision: [Topic]
+
+**Context:** [Why this decision matters for this feature]
+
+### Option A: [Name]
+- **How it works:** [1-2 sentences]
+- **Pros:** [benefits]
+- **Cons:** [drawbacks]
+- **Best when:** [use case]
+
+### Option B: [Name]
+- **How it works:** [1-2 sentences]
+- **Pros:** [benefits]
+- **Cons:** [drawbacks]
+- **Best when:** [use case]
+
+### Option C: [Name] (if applicable)
+[Same structure]
+
+**My recommendation:** Option [X]
+**Rationale:** Given [user's stated priorities], this option [reason].
+
+What's your preference?
+```
+
+### Common Decision Points
+
+Present options for these when relevant:
+
+| Decision | Typical Options |
+|----------|-----------------|
+| Database | PostgreSQL, SQLite, MongoDB |
+| API style | REST, GraphQL, tRPC |
+| State management | Server sessions, JWT, hybrid |
+| Async processing | Queues, events, cron jobs |
+| Frontend architecture | SPA, SSR, hybrid |
+| Caching | Redis, in-memory, CDN |
+
+### Draft Architecture Presentation
+
+When presenting a draft for review:
+
+```markdown
+## Draft Architecture: [Feature Name]
+
+[System overview with Mermaid diagram]
+
+[Component breakdown]
+
+[Key flows with sequence diagrams]
+
+[Data model if applicable]
+
+[Decisions made with rationale]
+
+---
+
+**Ready for your review.** Questions to consider:
+- Does this match your mental model?
+- Any concerns about the approach?
+- Missing components or flows?
+- Or approve to finalize.
+```
+
+### Revision Handling
+
+When user provides feedback:
+
+1. Acknowledge their concern
+2. Explain implications if relevant ("If we change X, we'd also need to change Y")
+3. Make the revision or present alternative
+4. Show updated diagram/section
+5. Confirm if there's more to adjust
+
+### Handoff from Project-Orchestrator
+
+You'll receive context in this format:
+
+```markdown
+## Architecture Request
+
+**Feature:** [name]
+**PRD:** docs/PRD-<feature>.md
+
+**Elicitation summary:**
+- System context: [integrations, deployment]
+- Data needs: [storage, consistency]
+- Scale expectations: [load, growth]
+- Security requirements: [auth, compliance]
+- Trade-off priorities: [what to optimize]
+
+**Decisions needed:**
+1. [Key decision point]
+2. [Key decision point]
+
+Please explore options and draft architecture.
+```
+
 ## Model Notes
 
 **Best on:**
@@ -396,3 +526,11 @@ After architecture is approved:
 **Struggles with:**
 - Over-engineering if not constrained
 - Can get stuck in analysis paralysis — push for decisions
+
+## Anti-Patterns in Detailed Mode
+
+- Don't present only one option as if it's the only way
+- Don't skip trade-off explanations—users need to understand implications
+- Don't ignore user's stated priorities when recommending
+- Don't create overly complex diagrams—one concept per diagram
+- Don't defend your design stubbornly—adapt to feedback
