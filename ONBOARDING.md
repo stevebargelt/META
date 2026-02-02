@@ -77,10 +77,38 @@ META/
 └── standards/        # Engineering baseline requirements
 ```
 
+## GitHub Issues
+
+Task tracking lives in GitHub Issues: https://github.com/stevebargelt/META/issues
+
+```bash
+# List open issues
+gh issue list
+
+# View specific issue
+gh issue view <number>
+
+# Create new issue
+gh issue create --title "Title" --body "Description"
+
+# Close issue
+gh issue close <number>
+```
+
+**Issue labels:**
+- `enhancement` - New features or improvements
+- `bug` - Something isn't working
+- `documentation` - Documentation updates
+- `pipeline` - Related to meta CLI or pipelines
+
+Check open issues before starting work to see current priorities and avoid duplicating effort.
+
 ## Recent Test Apps
 
 Check `learnings/` for retrospectives from test-app through test-app-7. These document what worked, what didn't, and improvements made.
 
 ## Getting Started
 
-Please start by reading the files listed in "Read These First", then let me know you're ready to work on the codebase.
+1. Read the files listed in "Read These First"
+2. Run `gh issue list` to see current open issues
+3. Let me know you're ready to work on the codebase
