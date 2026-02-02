@@ -2,6 +2,23 @@ name: feature
 description: Full feature development flow with parallelism
 timeout_min: 120
 
+# ============================================================================
+# DEFAULT AUTOMATED FLOW
+# ============================================================================
+# This pipeline runs PRD and Architecture steps automatically (Quick mode).
+#
+# FOR INTERACTIVE PRD/ARCHITECTURE:
+# Use the project-orchestrator agent instead. It offers:
+#   - Quick vs Detailed mode selection for PRD and Architecture
+#   - Detailed PRD: Competitive research + requirements elicitation + review loop
+#   - Detailed Architecture: Options exploration + trade-off discussion + review loop
+#   - Generates a custom pipeline skipping completed phases
+#
+# To use: Start a conversation with project-orchestrator agent, or see:
+#   - agents/project-orchestrator.md
+#   - workflows/pipelines/modules/README.md
+# ============================================================================
+
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
 1 | base            | - | auto | - | 5  | Create feature branch: Extract feature name from task, run `git checkout -b feature/<name>`. Then run META/scripts/preflight-gate.sh --project . and report results in .meta/handoff.md. If blockers exist, stop and list what needs to be fixed.
 2 | product-manager | - | auto | - | 30 | Create feature PRD as a SEPARATE file: docs/PRD-<feature-name>.md (do NOT modify the main docs/PRD.md). Follow META/prompts/prd-template.md structure. Update .meta/handoff.md with summary.

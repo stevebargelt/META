@@ -19,12 +19,14 @@ META/
 ├── agents/                      # Specialized AI agents
 │   ├── base.md                  # Foundation (all agents inherit)
 │   ├── product-manager.md       # PRD + scope definition
+│   ├── product-researcher.md    # Competitive analysis
 │   ├── architect.md             # System design & planning
 │   ├── tester.md                # Test strategy & design
 │   ├── reviewer.md              # Code review specialist
 │   ├── debugger.md              # Debug specialist
 │   ├── documenter.md            # Documentation writer
-│   └── orchestrator.md          # Multi-agent coordinator
+│   ├── orchestrator.md          # Multi-agent coordinator
+│   └── project-orchestrator.md  # Feature kickoff + depth selection
 │
 ├── patterns/                    # Reusable code & configs
 │   ├── api/                     # API patterns
@@ -43,7 +45,8 @@ META/
 │   ├── new-project.md           # Project setup flow
 │   ├── multi-agent.md           # Agent orchestration
 │   ├── context-reset.md         # Handling long sessions
-│   └── context-budget.md          # (removed — see context-reset.md)
+│   ├── context-budget.md        # (removed — see context-reset.md)
+│   └── pipelines/modules/       # Composable pipeline step templates
 │
 ├── scripts/                     # Helper scripts
 │   ├── agent.sh                 # Create handoff file for an agent
@@ -153,12 +156,14 @@ Different tasks benefit from different agent specializations:
 
 - **Base** — Your foundational agent, handles standard development
 - **Product Manager** — Defines scope and writes concise PRDs
+- **Product Researcher** — Competitive analysis and market research
 - **Architect** — Plans systems, makes design decisions, documents trade-offs
 - **Tester** — Test strategy, test design, edge case identification
 - **Reviewer** — Security and quality checks, finds issues before merge
 - **Debugger** — Systematic problem diagnosis, root cause analysis
 - **Documenter** — Clear, concise documentation that stays current
 - **Orchestrator** — Coordinates multiple agents on complex tasks
+- **Project Orchestrator** — Feature kickoff with Quick/Detailed mode selection for PRD and Architecture
 
 Each agent inherits from `base.md` and adds specialized behaviors.
 
