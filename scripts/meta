@@ -697,6 +697,7 @@ control_run() {
           local log_file="$project/.meta/steps/$run_id/step-${idx}.log"
           local decision
           decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+          gate_accumulate_wait "$state_file"
 
           case "$decision" in
             approve)
@@ -897,6 +898,7 @@ control_run() {
           local log_file="$project/.meta/steps/$run_id/step-${gate_step}.log"
           local decision
           decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$gate_step" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+          gate_accumulate_wait "$state_file"
 
           case "$decision" in
             approve)
@@ -973,6 +975,7 @@ control_run() {
       local log_file="$project/.meta/steps/$run_id/step-${idx}.log"
       local decision
       decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+      gate_accumulate_wait "$state_file"
 
       case "$decision" in
         approve)
@@ -1022,23 +1025,34 @@ control_run() {
   local started_epoch
   started_epoch=$(state_get "$state_file" "started_epoch" || true)
   local duration_sec=""
+  local gate_wait_sec=""
+  local exec_sec=""
   if [[ -n "$started_epoch" ]]; then
     duration_sec=$((finished_epoch - started_epoch))
     state_set "$state_file" "duration_sec" "$duration_sec"
+    gate_wait_sec=$(state_get "$state_file" "gate_wait_total" 2>/dev/null || echo "0")
+    exec_sec=$((duration_sec - gate_wait_sec))
+    state_set "$state_file" "exec_sec" "$exec_sec"
   fi
   local pipeline_log
   pipeline_log="$(pipeline_log_file "$project" "$run_id")"
   if [[ -n "$duration_sec" ]]; then
-    echo "PIPELINE END: ${finished_ts} (duration ${duration_sec}s)" >> "$pipeline_log"
+    echo "PIPELINE END: ${finished_ts} (total ${duration_sec}s, exec ${exec_sec}s, gate wait ${gate_wait_sec}s)" >> "$pipeline_log"
   else
     echo "PIPELINE END: ${finished_ts}" >> "$pipeline_log"
   fi
   echo ""
   echo "Pipeline complete."
   if [[ -n "$duration_sec" ]]; then
-    local pretty_duration
-    pretty_duration=$(format_duration "$duration_sec")
-    echo "Total duration: ${pretty_duration} (${duration_sec}s)"
+    local pretty_total
+    pretty_total=$(format_duration "$duration_sec")
+    local pretty_exec
+    pretty_exec=$(format_duration "$exec_sec")
+    local pretty_wait
+    pretty_wait=$(format_duration "$gate_wait_sec")
+    echo "Total duration:     ${pretty_total} (${duration_sec}s)"
+    echo "Execution time:     ${pretty_exec} (${exec_sec}s)"
+    echo "Gate wait time:     ${pretty_wait} (${gate_wait_sec}s)"
   fi
 }
 
@@ -1212,6 +1226,7 @@ meta_run() {
   state_set "$state_file" "started_epoch" "$started_epoch"
   state_set "$state_file" "run_id" "$run_id"
   state_set "$state_file" "current_step" "0"
+  state_set "$state_file" "gate_wait_total" "0"
 
   # Persist CLI flags for resume
   state_set "$state_file" "flag_cli" "$default_cli"

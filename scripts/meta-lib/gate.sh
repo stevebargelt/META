@@ -2,14 +2,30 @@
 
 # Gate prompts
 
+# Global to track gate wait time for current call
+GATE_WAIT_SEC=0
+
+# Accumulate gate wait time to state file
+gate_accumulate_wait() {
+  local state_file="$1"
+  local current_total
+  current_total=$(state_get "$state_file" "gate_wait_total" 2>/dev/null || echo "0")
+  local new_total=$((current_total + GATE_WAIT_SEC))
+  state_set "$state_file" "gate_wait_total" "$new_total"
+}
+
 gate_prompt() {
   local message="$1"
   local log_file="${2:-}"
   local prompt="${3:-Approve? [y/n/r(retry)/s(skip)]}"
 
+  local gate_start_epoch
+  gate_start_epoch="$(date +%s)"
+
   if [[ "${META_AUTO_APPROVE:-}" == "1" ]]; then
     printf "\n%s\n" "$message" >&2
     printf "%s\n" "Auto-approve enabled." >&2
+    GATE_WAIT_SEC=0
     echo "approve"
     return 0
   fi
@@ -21,31 +37,39 @@ gate_prompt() {
     printf "────────────────────────────────────\n\n" >&2
   fi
 
+  local result=""
   while true; do
     printf "%s\n" "$message" >&2
     read -r -p "$prompt " choice
     case "$choice" in
       y|Y)
-        echo "approve"
-        return 0
+        result="approve"
+        break
         ;;
       n|N)
-        echo "abort"
-        return 0
+        result="abort"
+        break
         ;;
       r|R)
-        echo "retry"
-        return 0
+        result="retry"
+        break
         ;;
       s|S)
-        echo "skip"
-        return 0
+        result="skip"
+        break
         ;;
       *)
         printf "%s\n" "Please enter y, n, r, or s." >&2
         ;;
     esac
   done
+
+  local gate_end_epoch
+  gate_end_epoch="$(date +%s)"
+  GATE_WAIT_SEC=$((gate_end_epoch - gate_start_epoch))
+
+  echo "$result"
+  return 0
 }
 
 quality_gate_check() {
