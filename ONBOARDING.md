@@ -112,3 +112,35 @@ Check `learnings/` for retrospectives from test-app through test-app-7. These do
 1. Read the files listed in "Read These First"
 2. Run `gh issue list` to see current open issues
 3. Let me know you're ready to work on the codebase
+
+## Current State
+
+*Last updated: 2026-01-29*
+
+### Recently Completed
+
+- **Gate wait time tracking** - Pipeline now reports execution time vs gate wait time separately
+- **Feature pipeline parallelism** - Steps 4-6 (tester, backend, frontend) now run in parallel
+- **Feature branch workflow** - Feature pipeline creates `feature/<name>` branch at start
+- **Separate feature PRDs** - Creates `docs/PRD-<feature>.md` instead of appending to main PRD
+- **Auto-close panes** - Tmux windows close automatically after step completion
+- **test-app-7 retrospective** - Documented in `learnings/2026-01-29-test-app-7.md`
+
+### Known Gaps / Open Issues
+
+1. **No E2E testing in pipelines** - Code passes unit/integration tests but can break in browser (e.g., test-app-7 Create Recipe bug). Need to add Playwright smoke tests.
+
+2. **`resume` command doesn't auto-detect next.pipeline** - After project pipeline completes and generates `.meta/next.pipeline`, user must manually run it with `--continue` flag. Could enhance `resume` to auto-detect and offer to run it.
+
+3. **Quality gate monorepo handling** - `quality-gate.sh` assumes single `package.json`. Monorepos with separate server/client need special handling.
+
+### Test App Status
+
+- **test-app-7** (Recipe Manager) - Most recent. Express + SQLite backend, React frontend. Bug fixed (Create Recipe). Local git only, no GitHub remote.
+- Previous test apps (1-6) documented in `learnings/` retrospectives
+
+### Next Steps to Consider
+
+- Add Playwright smoke test step to feature.pipeline
+- Enhance `resume` to detect and run next.pipeline
+- Update quality-gate.sh for monorepo support
