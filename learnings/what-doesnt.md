@@ -2,7 +2,7 @@
 
 Anti-patterns and approaches to avoid, learned from real experience.
 
-**Last Updated:** 2026-01-28
+**Last Updated:** 2026-01-29
 
 ---
 
@@ -123,6 +123,34 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Example:** test-app-6 has React + TanStack Query + @dnd-kit but no component tests
 **Instead:** Add frontend test step to orchestrator template; configure Vitest + Testing Library for client/
 **Source:** test-app-6 (2026-01)
+
+---
+
+## Feature Development Anti-Patterns
+
+### Feature PRD Appended to Main PRD
+
+**What:** Product-manager agent appends feature PRD content to existing `docs/PRD.md`
+**Why it fails:** Pollutes original project PRD, hard to track feature history, unclear what was original vs added
+**Example:** "Feature PRD: Shopping List Generation" appended to Recipe Manager PRD
+**Instead:** Create separate file `docs/PRD-<feature-name>.md` for each feature
+**Source:** test-app-7 (2026-01)
+
+### Feature Work Without Feature Branch
+
+**What:** Feature development commits directly to main branch
+**Why it fails:** No isolation for feature development, harder to review, can't easily revert feature
+**Example:** Shopping list feature commits mixed with main branch history
+**Instead:** Create `feature/<name>` branch at start of feature pipeline, merge/PR at end
+**Source:** test-app-7 (2026-01)
+
+### Sequential Feature Pipeline
+
+**What:** Feature pipeline runs all steps sequentially despite independent workstreams
+**Why it fails:** Dramatically slower (11.6 hrs vs expected ~2 hrs), no concurrency benefit
+**Example:** Tester, backend impl, frontend impl all sequential when they could be parallel
+**Instead:** Use `PARALLEL_GROUP` for tester + backend + frontend, add build validation after merge
+**Source:** test-app-7 (2026-01)
 
 ---
 
