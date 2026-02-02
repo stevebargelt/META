@@ -1,0 +1,7 @@
+# Review Module
+# Code review and issue fixes
+# Prerequisites: Implementation complete, build passing
+
+# NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+N | reviewer | - | gate | - | 20 | Review all changes for quality, security, and adherence to architecture. Check that tests cover the feature adequately. Update .meta/handoff.md with findings.
+N+1 | base | - | auto | - | 15 | Fix any issues flagged by reviewer. Update .meta/handoff.md with changes made.

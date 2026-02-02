@@ -1,0 +1,6 @@
+# Branch Setup Module
+# Create feature branch and run preflight checks
+# Prerequisites: None (this is always the first step)
+
+# NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+N | base | - | auto | - | 5 | Create feature branch: Extract feature name from task, run `git checkout -b feature/<name>`. Then run META/scripts/preflight-gate.sh --project . and report results in .meta/handoff.md. If blockers exist, stop and list what needs to be fixed.

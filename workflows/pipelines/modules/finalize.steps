@@ -1,0 +1,8 @@
+# Finalize Module
+# Documentation, DoD checklist, and quality gate
+# Prerequisites: Review complete, issues fixed
+
+# NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+N | documenter | - | auto | - | 10 | Update README and relevant docs with feature changes. Summarize in .meta/handoff.md.
+N+1 | base | - | auto | - | 10 | Run META/prompts/definition-of-done-checklist.md. Fix safe gaps or list blockers in .meta/handoff.md.
+N+2 | base | - | gate | - | 10 | Final quality gate. Run META/scripts/quality-gate.sh --project . and report results in .meta/handoff.md. If checks fail, fix what you can and re-run.

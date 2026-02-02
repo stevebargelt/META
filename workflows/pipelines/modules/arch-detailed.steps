@@ -1,0 +1,66 @@
+# Architecture Detailed Module (Reference Only)
+# This module documents the interactive flow - it does NOT get copied into pipelines
+# The project-orchestrator runs this flow conversationally before pipeline generation
+
+# INTERACTIVE FLOW (runs before pipeline)
+# ========================================
+#
+# This is NOT a pipeline step. It's an interactive conversation facilitated by
+# the project-orchestrator agent using prompts/arch-detailed-questions.md.
+#
+# Prerequisites:
+# - PRD complete and approved (docs/PRD-<feature-name>.md)
+# - Kickoff complete with "Detailed Architecture" selected
+#
+# Flow:
+#
+# 1. CONTEXT LOADING (project-orchestrator, ~5 min)
+#    - Read PRD requirements
+#    - Read existing docs/ARCHITECTURE.md if present
+#    - Review relevant codebase if existing project
+#    - Review competitive analysis if present
+#
+# 2. ARCHITECTURE ELICITATION (project-orchestrator, ~20-30 min)
+#    - Ask questions from prompts/arch-detailed-questions.md
+#    - Categories: System Context, Data & State, Scale & Performance, Security, Trade-offs
+#    - Focus on decisions not already made in PRD
+#    - Identify key decision points
+#
+# 3. OPTIONS EXPLORATION (project-orchestrator, ~20-30 min)
+#    - For each significant decision, present 2-3 options
+#    - Explain trade-offs clearly
+#    - Provide recommendation with rationale
+#    - Get explicit user preference
+#    - Common decisions: database, API style, state management, async processing
+#
+# 4. DRAFT ARCHITECTURE (project-orchestrator, ~15-20 min)
+#    - Create comprehensive architecture document
+#    - System overview with Mermaid flowchart
+#    - Component breakdown with responsibilities
+#    - Key flows with sequence diagrams
+#    - Data model with ER diagram (if applicable)
+#    - Record all decisions with rationale
+#    - Present draft in conversation
+#
+# 5. REVIEW LOOP (project-orchestrator + human, variable)
+#    - Human reviews design
+#    - Agent explains reasoning, answers questions
+#    - Revise based on feedback
+#    - Repeat until human approves
+#
+# 6. FINALIZE
+#    - Update docs/ARCHITECTURE.md with feature design
+#    - Update .meta/handoff.md with summary
+#    - Generate pipeline for remaining work
+#
+# Artifacts Created/Updated:
+# - docs/ARCHITECTURE.md (updated with feature design)
+#
+# Time Estimate: 1-2 hours depending on complexity and review iterations
+#
+# When to Use:
+# - Novel problem with multiple valid approaches
+# - Integration with external systems
+# - Scale/performance concerns
+# - Security-sensitive features
+# - User wants to understand trade-offs
