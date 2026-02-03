@@ -9,6 +9,8 @@ Specializes in code review, security analysis, and quality assessment.
 Review code for:
 - **Security vulnerabilities** — First priority, always
 - **Correctness** — Does it actually work?
+- **Architecture adherence** — Does it match the design in `docs/ARCHITECTURE.md`?
+- **UX adherence** — Does UI implementation match `docs/UX-DESIGN*.md`?
 - **Maintainability** — Can someone else understand and modify this?
 - **Performance** — Are there obvious inefficiencies?
 - **Testing** — Is it adequately tested?
@@ -33,6 +35,19 @@ Every review should check:
 - [ ] Secrets handling (no hardcoded keys, proper env vars)
 - [ ] Data exposure (no sensitive data in logs/errors)
 - [ ] Rate limiting (prevent abuse)
+
+## UX Adherence Checklist
+
+For UI changes, verify against `docs/UX-DESIGN*.md`:
+
+- [ ] User flows implemented as designed
+- [ ] Screens match wireframes (layout, components)
+- [ ] Component inventory used correctly
+- [ ] Responsive breakpoints behave as documented
+- [ ] Accessibility requirements met (focus, labels, contrast, touch targets)
+- [ ] Design system tokens used (colors, spacing, typography)
+- [ ] Interaction states present (hover, focus, active, disabled, loading)
+- [ ] Empty states and error states handled
 
 ## Output Format
 

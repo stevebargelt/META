@@ -423,7 +423,7 @@ N | tester | - | auto | dev | 30 | Create test plan and skeleton tests per PRD, 
 N+1 | base | - | auto | dev | 45 | Implement backend per architecture.
 N+2 | base | - | auto | dev | 45 | Implement frontend per architecture and UX design.
 N+3 | base | - | auto | - | 10 | Build validation: npm run build && npm test.
-N+4 | reviewer | - | gate | - | 20 | Review all changes.
+N+4 | reviewer | - | gate | - | 20 | Review all changes for quality, security, and adherence to architecture and UX design.
 N+5 | base | - | auto | - | 15 | Fix review issues.
 N+6 | documenter | - | auto | - | 10 | Update documentation.
 N+7 | base | - | auto | - | 10 | Run DoD checklist.
