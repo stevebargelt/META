@@ -426,22 +426,15 @@ step_launch() {
     return 1
   fi
 
-  local window_name
-  window_name="step-${step_num}-${agent}"
-
   rm -f "$AGENT_EXIT_FILE" >/dev/null 2>&1 || true
   if [[ "$handoff_file" == *"handoff-step-"* ]]; then
     rm -f "$project/.meta/steps/$run_id/step-${step_num}.merged" >/dev/null 2>&1 || true
   fi
 
-  if [[ "$cli" == "claude-interactive" || "$cli" == "codex-interactive" ]]; then
-    # Split pane for interactive steps - keeps control window visible
-    echo "Interactive step ${step_num} (${agent}). Opening in split pane..."
-    tmux_split_pane "$session" "v" "50" "bash \"$AGENT_RUN_FILE\""
-  else
-    # Regular window for non-interactive steps
-    tmux_new_window "$session" "$window_name" "bash \"$AGENT_RUN_FILE\""
-  fi
+  # Use pane layout: control on top, workers on bottom
+  # Creates a new pane in the bottom area for this step
+  echo "Step ${step_num} (${agent}). Opening in worker pane..."
+  tmux_create_worker_pane "$session" "$step_num" "bash \"$AGENT_RUN_FILE\""
 }
 
 run_step_serial() {
@@ -481,8 +474,8 @@ run_step_serial() {
           fi
         fi
       fi
-      # Auto-close step window on success (logs saved to .meta/steps/)
-      tmux_kill_window "$session" "step-${step_num}"
+      # Auto-close step pane on success (logs saved to .meta/steps/)
+      tmux_remove_worker_pane "$session" "$step_num"
       return 0
     fi
 
@@ -794,8 +787,8 @@ control_run() {
         if [[ "$wait_result" == "success" ]]; then
           state_set "$state_file" "step_${step}" "done"
           completed_steps+=("$step")
-          # Auto-close step window on success
-          tmux_kill_window "$session" "step-${step}"
+          # Auto-close step pane on success
+          tmux_remove_worker_pane "$session" "$step"
         else
           state_set "$state_file" "step_${step}" "failed"
           failed_steps+=("${step}:${wait_result}")
@@ -1278,7 +1271,9 @@ EOF_CTRL
   fi
 
   tmux_create_session "$session" "control" "bash \"$control_script\""
+  tmux_init_layout "$session"
   echo "Created tmux session: $session"
+  echo "Layout: Control pane (top), worker panes (bottom)"
   tmux_attach "$session"
 }
 
@@ -1508,6 +1503,7 @@ EOF_CTRL
   tmux_require
 
   tmux_create_session "$session" "control" "bash \"$control_script\""
+  tmux_init_layout "$session"
   tmux_attach "$session"
 }
 
@@ -1551,6 +1547,7 @@ meta_abort() {
   local session
   session=$(state_get "$state_file" "session" || true)
   if [[ -n "$session" ]]; then
+    tmux_cleanup_layout "$session"
     tmux_kill_session "$session"
   fi
 
