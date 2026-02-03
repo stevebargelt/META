@@ -21,6 +21,7 @@ META/
 │   ├── product-manager.md       # PRD + scope definition
 │   ├── product-researcher.md    # Competitive analysis
 │   ├── architect.md             # System design & planning
+│   ├── ux-designer.md           # UX/UI design + wireframes
 │   ├── tester.md                # Test strategy & design
 │   ├── reviewer.md              # Code review specialist
 │   ├── debugger.md              # Debug specialist
@@ -158,12 +159,13 @@ Different tasks benefit from different agent specializations:
 - **Product Manager** — Defines scope and writes concise PRDs
 - **Product Researcher** — Competitive analysis and market research
 - **Architect** — Plans systems, makes design decisions, documents trade-offs
+- **UX Designer** — User flows, wireframes, component inventory, responsive design
 - **Tester** — Test strategy, test design, edge case identification
 - **Reviewer** — Security and quality checks, finds issues before merge
 - **Debugger** — Systematic problem diagnosis, root cause analysis
 - **Documenter** — Clear, concise documentation that stays current
 - **Orchestrator** — Coordinates multiple agents on complex tasks
-- **Project Orchestrator** — Feature kickoff with Quick/Detailed mode selection for PRD and Architecture
+- **Project Orchestrator** — Feature kickoff with Quick/Detailed mode selection for PRD, Architecture, and UX Design
 
 Each agent inherits from `base.md` and adds specialized behaviors.
 

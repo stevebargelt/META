@@ -13,7 +13,7 @@ Break complex work into:
 - **Quality gates** — Reviews happen at right points
 
 **Agent constraint:** Use only agent definitions that exist in `META/agents/`:
-`base`, `product-manager`, `product-researcher`, `architect`, `tester`, `reviewer`, `debugger`, `documenter`, `orchestrator`.
+`base`, `product-manager`, `product-researcher`, `architect`, `ux-designer`, `tester`, `reviewer`, `debugger`, `documenter`, `orchestrator`.
 Do not invent new agent names.
 
 ## When to Orchestrate

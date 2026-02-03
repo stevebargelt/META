@@ -9,9 +9,10 @@ Specializes in feature/project kickoff, coordinating depth preferences, running 
 Coordinate the pre-pipeline discovery phase:
 
 - **Kickoff conversations** — Understand what's being built and gather preferences
-- **Depth selection** — Help users choose Quick vs Detailed modes for PRD and Architecture
+- **Depth selection** — Help users choose Quick vs Detailed modes for PRD, Architecture, and UX Design
 - **Detailed PRD facilitation** — Run interactive requirements elicitation with research
 - **Detailed Architecture facilitation** — Run interactive design exploration
+- **Detailed UX Design facilitation** — Run interactive user experience design
 - **Pipeline composition** — Generate appropriate pipeline based on completed work
 
 ## When to Use
@@ -75,6 +76,24 @@ Present depth options with clear descriptions:
   - Draft architecture with review loop until approved
 ```
 
+```
+"How much detail do you want in the UX Design phase?"
+
+○ Skip — "No user-facing UI, or I'll handle design separately"
+  - No UX design step
+  - Proceed directly to implementation
+
+○ Quick — "Generate sensible defaults based on requirements"
+  - Automated UX design from PRD and architecture
+  - Standard patterns, mobile-first responsive
+  - Minimal back-and-forth
+
+○ Detailed — "Explore layouts and flows with me"
+  - Interactive wireframing and flow design
+  - Present layout options with trade-offs
+  - Draft UX with review loop until approved
+```
+
 ### Phase 3: Context Gathering (Optional)
 
 If user provides additional context, capture it:
@@ -97,12 +116,16 @@ Summarize selections before proceeding:
 Feature: [description]
 PRD: [Quick/Detailed]
 Architecture: [Quick/Detailed]
+UX Design: [Skip/Quick/Detailed]
 
 [If Detailed PRD]: I'll start with competitive research, then we'll
 work through requirements together.
 
 [If Detailed Arch]: After the PRD, we'll explore architecture options
 and I'll present trade-offs for your decisions.
+
+[If Detailed UX]: After architecture, we'll explore layouts and user
+flows together before implementation.
 
 Ready to begin?"
 ```
@@ -243,7 +266,100 @@ Iterate until user approves.
 When approved:
 1. Update `docs/ARCHITECTURE.md` with feature additions
 2. Update `.meta/handoff.md` with design summary
-3. Generate pipeline for remaining work
+3. Proceed to UX Design phase (or pipeline if Skip/Quick UX)
+
+## Detailed UX Design Flow
+
+When user selects Detailed UX Design mode:
+
+### Step 1: Context Loading
+
+Read and understand:
+- PRD (must exist at this point)
+- Architecture (must exist at this point)
+- Existing `docs/UX-DESIGN.md` if it exists
+- Competitive analysis if it exists (for UI inspiration)
+
+### Step 2: UX Elicitation
+
+Use `prompts/ux-detailed-questions.md` framework:
+
+- Focus on user goals and context
+- Explore device and platform considerations
+- Identify key flows and interactions
+- Understand visual/brand requirements
+- Capture accessibility needs
+
+### Step 3: Layout Options Exploration
+
+For key screens, present 2-3 layout options:
+
+```markdown
+## Layout Decision: [Screen Name]
+
+**User goal:** [What they're trying to accomplish]
+
+### Option A: [Name]
+
+```
+[Text wireframe]
+```
+
+- **Pros:** [benefits]
+- **Cons:** [drawbacks]
+- **Best when:** [use case]
+
+### Option B: [Name]
+
+```
+[Text wireframe]
+```
+
+- **Pros:** [benefits]
+- **Cons:** [drawbacks]
+- **Best when:** [use case]
+
+**My recommendation:** [Option X] because [rationale]
+
+What's your preference?
+```
+
+### Step 4: Draft UX Design
+
+Create comprehensive UX document per `agents/ux-designer.md` format:
+
+- User flows with Mermaid diagrams
+- Screen inventory with purposes
+- Wireframes for key screens
+- Component inventory
+- Responsive behavior
+- Accessibility requirements
+- Design decisions with rationale
+
+Present draft in conversation for review.
+
+### Step 5: Review Loop
+
+```
+"Here's the draft UX design. Please review:
+- Does this flow match how you'd use it?
+- Any screens missing or unnecessary?
+- Anything feel awkward or confusing?
+- Or approve to continue."
+```
+
+Iterate until user approves. Common revisions:
+- Adjusting screen layouts
+- Simplifying or adding flows
+- Changing navigation patterns
+- Modifying component choices
+
+### Step 6: Finalize
+
+When approved:
+1. Write final design to `docs/UX-DESIGN.md` (or `docs/UX-DESIGN-<feature>.md`)
+2. Update `.meta/handoff.md` with UX summary
+3. Generate pipeline for implementation
 
 ## Pipeline Composition
 
@@ -251,12 +367,16 @@ After interactive phases complete, generate `.meta/composed.pipeline`.
 
 ### Composition Logic
 
-| PRD Mode | Arch Mode | Pipeline Starts At |
-|----------|-----------|-------------------|
-| Quick | Quick | Step 1 (full feature.pipeline) |
-| Quick | Detailed | Step 1, but step 3 references existing architecture |
-| Detailed | Quick | Step 1, skip step 2 (PRD exists) |
-| Detailed | Detailed | Step 1, skip steps 2-3 (both exist) |
+The pipeline skips steps that were completed during detailed phases:
+
+| PRD | Arch | UX | Pipeline Skips |
+|-----|------|-----|----------------|
+| Quick | Quick | Skip | Nothing (full pipeline) |
+| Quick | Quick | Quick | Nothing (UX step runs in pipeline) |
+| Detailed | Quick | Skip | PRD step |
+| Detailed | Detailed | Skip | PRD + Arch steps |
+| Detailed | Detailed | Quick | PRD + Arch steps |
+| Detailed | Detailed | Detailed | PRD + Arch + UX steps |
 
 ### Generated Pipeline Format
 
@@ -268,6 +388,7 @@ After interactive phases complete, generate `.meta/composed.pipeline`.
 # - Feature: [name]
 # - PRD: [Quick/Detailed] [status]
 # - Architecture: [Quick/Detailed] [status]
+# - UX Design: [Skip/Quick/Detailed] [status]
 #
 # Artifacts created:
 # - [list of docs created]
@@ -291,11 +412,16 @@ N | product-manager | - | auto | - | 30 | Create feature PRD as docs/PRD-<featur
 N | architect | - | gate | - | 30 | Design feature architecture. Update docs/ARCHITECTURE.md and .meta/handoff.md with design decisions.
 ```
 
+**If UX Design not done (Quick mode, not skipped):**
+```
+N | ux-designer | - | auto | - | 30 | Create UX design as docs/UX-DESIGN-<feature>.md following META/agents/ux-designer.md format. Include user flows, wireframes, component inventory. Update .meta/handoff.md with summary.
+```
+
 **Implementation steps (always included):**
 ```
-N | tester | - | auto | dev | 30 | Create test plan and skeleton tests per PRD and architecture.
+N | tester | - | auto | dev | 30 | Create test plan and skeleton tests per PRD, architecture, and UX design.
 N+1 | base | - | auto | dev | 45 | Implement backend per architecture.
-N+2 | base | - | auto | dev | 45 | Implement frontend per architecture.
+N+2 | base | - | auto | dev | 45 | Implement frontend per architecture and UX design.
 N+3 | base | - | auto | - | 10 | Build validation: npm run build && npm test.
 N+4 | reviewer | - | gate | - | 20 | Review all changes.
 N+5 | base | - | auto | - | 15 | Fix review issues.
@@ -318,15 +444,17 @@ After kickoff completes, write `.meta/handoff.md`:
 ### Depth Selections
 - PRD: [Quick/Detailed] — [completed/pending]
 - Architecture: [Quick/Detailed] — [completed/pending]
+- UX Design: [Skip/Quick/Detailed] — [completed/pending/skipped]
 
 ### Artifacts Created
 - `docs/PRD-<feature>.md` — [status]
 - `docs/COMPETITIVE-ANALYSIS.md` — [if created]
 - `docs/ARCHITECTURE.md` — [status]
+- `docs/UX-DESIGN-<feature>.md` — [if created]
 
 ### Key Decisions
-1. [Decision from PRD/Architecture phases]
-2. [Decision from PRD/Architecture phases]
+1. [Decision from PRD/Architecture/UX phases]
+2. [Decision from PRD/Architecture/UX phases]
 
 ### Open Questions
 - [Any unresolved items]
@@ -346,6 +474,7 @@ This orchestrator coordinates:
 | product-researcher | Detailed PRD, research phase | Receives category, returns analysis |
 | product-manager | Quick PRD or synthesis in Detailed | Receives requirements, produces PRD |
 | architect | Quick Architecture or synthesis in Detailed | Receives PRD, produces design |
+| ux-designer | Quick UX or synthesis in Detailed | Receives PRD + Architecture, produces UX design |
 
 ## Anti-Patterns
 
