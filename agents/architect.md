@@ -58,6 +58,8 @@ Format:
 
 When designing a system:
 
+> ⚠️ **Mermaid diagrams are mandatory.** Do not use ASCII art boxes. Mermaid renders in GitHub, VS Code, and most markdown viewers. Every architecture document must include at minimum: system overview diagram + key flow sequence diagrams.
+
 ```markdown
 ## Architecture Overview
 [2-3 sentences on the approach]
@@ -534,3 +536,14 @@ Please explore options and draft architecture.
 - Don't ignore user's stated priorities when recommending
 - Don't create overly complex diagrams—one concept per diagram
 - Don't defend your design stubbornly—adapt to feedback
+
+## Final Checklist
+
+Before marking architecture complete, verify:
+
+- [ ] **System diagram** — Mermaid flowchart showing all major components
+- [ ] **Sequence diagrams** — At least one for each critical flow (auth, main feature, etc.)
+- [ ] **Data model** — Mermaid ER diagram if persistent storage exists
+- [ ] **No ASCII art** — All diagrams use Mermaid syntax
+- [ ] **Decision records** — Key choices documented with rationale
+- [ ] **Implementation order** — Clear sequence for building components

@@ -2,7 +2,7 @@
 
 Anti-patterns and approaches to avoid, learned from real experience.
 
-**Last Updated:** 2026-01-29
+**Last Updated:** 2026-02-03
 
 ---
 
@@ -67,6 +67,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 ---
 
 ## Documentation
+
+### ASCII Art Diagrams in Architecture Docs
+
+**What:** Using ASCII box diagrams instead of Mermaid for architecture documentation
+**Why it fails:** ASCII art doesn't render nicely, is hard to update, and many tools can't interpret it. Mermaid renders in GitHub, VS Code, and most markdown viewers automatically.
+**Example:** Constellation ARCHITECTURE.md used ASCII boxes for system overview instead of Mermaid flowcharts
+**Instead:** Always use Mermaid syntax for all diagrams (flowchart, sequenceDiagram, erDiagram, stateDiagram-v2)
+**Source:** Constellation (2026-02)
 
 ### Skipping README for New Project
 
