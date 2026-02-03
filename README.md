@@ -164,6 +164,7 @@ Different tasks benefit from different agent specializations:
 - **Reviewer** — Security and quality checks, finds issues before merge
 - **Debugger** — Systematic problem diagnosis, root cause analysis
 - **Documenter** — Clear, concise documentation that stays current
+- **DevOps Engineer** — CI/CD pipelines, deployment strategy, observability, runbooks
 - **Orchestrator** — Coordinates multiple agents on complex tasks
 - **Project Orchestrator** — Feature kickoff with Quick/Detailed mode selection for PRD, Architecture, and UX Design
 
