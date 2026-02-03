@@ -110,6 +110,12 @@ For UI changes, verify against `docs/UX-DESIGN*.md`:
 
 ## Common Issues to Watch For
 
+### Integration
+- **Mock data in production code** — Frontend must use real backend calls, not hardcoded data
+- API client not created or not used
+- Environment variables for API URLs not configured
+- No error handling for failed API calls
+
 ### Security
 - User input going directly into queries/commands
 - Authentication checks missing on sensitive operations

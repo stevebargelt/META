@@ -160,6 +160,19 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Instead:** Use `PARALLEL_GROUP` for tester + backend + frontend, add build validation after merge
 **Source:** test-app-7 (2026-01)
 
+### Mock Data in Production Code
+
+**What:** Frontend implementation uses hardcoded mock data instead of connecting to real backend
+**Why it fails:** App looks complete but doesn't actually work. No real CRUD, no auth, no data persistence. Users can't use the app.
+**Example:** Constellation pages had `const mockTasks = [...]` instead of Supabase queries. Migrations existed, BFFs existed, but frontend never connected to them.
+**Instead:**
+- Create API client (`lib/supabase.ts`) as first frontend step
+- Use React Query with real endpoints
+- Wire up auth immediately
+- Mock data ONLY in test files, Storybook, or explicit demo modes
+- DoD must verify real data flow (create/read/update/delete works)
+**Source:** Constellation (2026-02)
+
 ---
 
 ---

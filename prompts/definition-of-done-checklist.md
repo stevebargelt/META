@@ -17,6 +17,14 @@ Confirm all quality gates pass before marking a pipeline complete.
 - [ ] Tests pass for core packages
 - [ ] OpenAPI validated if `docs/openapi.yaml` exists
 
+### Integration (CRITICAL)
+- [ ] **No mock data in production code** — Search for `mock`, `stub`, `fake`, `hardcoded` in non-test files
+- [ ] **Backend connected** — API client exists and is used (e.g., `lib/supabase.ts`, `lib/api.ts`)
+- [ ] **Database migrations applied** — Run `supabase migration list` or equivalent
+- [ ] **Auth wired up** — Login/logout works with real auth provider
+- [ ] **CRUD operations work** — Can create, read, update, delete at least one entity type
+- [ ] **Environment variables used** — No hardcoded URLs or keys in source code
+
 ### Recommended
 - [ ] `.env.example` provided for required env vars
 - [ ] Architecture or decisions documented (if non-trivial)

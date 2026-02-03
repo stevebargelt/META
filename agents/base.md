@@ -97,6 +97,25 @@ When implementing features, reference these docs (if they exist):
 - `docs/ARCHITECTURE.md` — System design and component structure
 - `docs/UX-DESIGN*.md` — User flows, wireframes, component inventory, responsive behavior
 
+## Implementation Standards
+
+### No Mock Data in Production Code
+
+**CRITICAL:** When implementing features, connect to real backends. Do NOT use mock/stub/fake data in production code.
+
+- ✅ Create API client (`lib/supabase.ts`, `lib/api.ts`)
+- ✅ Use React Query or similar with real endpoints
+- ✅ Wire up authentication
+- ✅ Handle loading, error, and empty states
+- ❌ Hardcoded arrays of fake data
+- ❌ `// TODO: replace with real API call`
+- ❌ Mock data outside of test files
+
+Mock data is acceptable ONLY in:
+- Test files (`*.test.ts`, `*.spec.ts`)
+- Storybook stories
+- Explicitly marked demo/sandbox modes
+
 ## Engineering Standards
 
 For cross-cutting requirements (observability, tracing, security, testing, error handling), see `standards/engineering-baseline.md`. These are table stakes for every project.
