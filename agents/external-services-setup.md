@@ -94,12 +94,13 @@ Create `.env.example` at project root:
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Supabase
+# Supabase (2025+ API Keys)
 # https://supabase.com/dashboard/project/[project-id]/settings/api
+# Docs: https://supabase.com/docs/guides/api/api-keys
 # -----------------------------------------------------------------------------
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_KEY=your-service-key  # Server-side only, never expose to client
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx  # Safe for client
+SUPABASE_SECRET_KEY=sb_secret_xxx  # Server-side only, never expose to client
 
 # -----------------------------------------------------------------------------
 # Sentry
@@ -126,10 +127,18 @@ Ensure `.env` is gitignored (add if missing):
 
 ### Supabase
 
+> **Important (2025+):** Supabase now uses publishable/secret keys instead of the legacy anon/service_role JWT keys. New projects only have the new key format. See [API Keys Documentation](https://supabase.com/docs/guides/api/api-keys).
+
 **Variables needed:**
 - `SUPABASE_URL` — Project URL
-- `SUPABASE_ANON_KEY` — Public anonymous key (safe for client)
-- `SUPABASE_SERVICE_KEY` — Service role key (server-side only!)
+- `SUPABASE_PUBLISHABLE_KEY` — Public key (safe for client) — starts with `sb_publishable_`
+- `SUPABASE_SECRET_KEY` — Secret key (server-side only!) — starts with `sb_secret_`
+
+**Key differences from legacy:**
+- New keys are opaque tokens, NOT JWTs
+- Cannot be used in `Authorization: Bearer` header (use user's JWT for authenticated requests)
+- Edge Functions may need `--no-verify-jwt` flag when called with these keys
+- Supabase Client libraries work with new keys without code changes
 
 **Setup steps:**
 1. Go to https://supabase.com/dashboard
@@ -138,12 +147,17 @@ Ensure `.env` is gitignored (add if missing):
 4. Wait for project to provision (~2 minutes)
 5. Go to Settings > API
 6. Copy Project URL → `SUPABASE_URL`
-7. Copy `anon` `public` key → `SUPABASE_ANON_KEY`
-8. Copy `service_role` key → `SUPABASE_SERVICE_KEY`
+7. Copy `publishable` key → `SUPABASE_PUBLISHABLE_KEY`
+8. Copy `secret` key → `SUPABASE_SECRET_KEY`
 
 **Additional setup:**
 - Enable required Auth providers (Settings > Authentication > Providers)
 - Note: Database password is NOT an env var (used only in Supabase Dashboard)
+
+**Edge Functions note:**
+If calling Edge Functions with these keys (not user JWTs), you may need to:
+- Deploy with `--no-verify-jwt` flag, OR
+- Extract the publishable key from the `apikey` header in your function
 
 ### Sentry
 

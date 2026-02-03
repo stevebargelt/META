@@ -2,7 +2,7 @@
 
 Proven patterns and approaches from real projects. Add to this when you discover something that actually saves time or improves quality.
 
-**Last Updated:** 2026-01-28
+**Last Updated:** 2026-02-03
 
 ---
 
@@ -123,6 +123,23 @@ git commit -m "feat: complete feature"
 **Example:** test-app-6 correctly made Kanban (step 11) sequential despite simpler UI steps being parallel
 **When:** Components with external dependencies, complex libraries (drag-drop, auth), or novel implementations
 **Source:** test-app-6 (2026-01)
+
+---
+
+## External Services
+
+### Supabase API Keys (2025+ Format)
+
+**What:** Use `sb_publishable_xxx` and `sb_secret_xxx` keys instead of legacy `anon` and `service_role` JWT keys
+**Why it works:** New Supabase projects only have the new key format; legacy keys are deprecated
+**Key differences:**
+- New keys are opaque tokens, not JWTs
+- Cannot use in `Authorization: Bearer` header (use user JWT for authenticated requests)
+- Edge Functions may need `--no-verify-jwt` flag when called with these keys
+- Supabase Client libraries work without code changes
+**When to use:** All new Supabase projects (2025+)
+**Pattern files updated:** `agents/external-services-setup.md`, `patterns/deployment/supabase-setup.md`
+**Source:** Constellation (2026-02), [Supabase API Keys Docs](https://supabase.com/docs/guides/api/api-keys)
 
 ---
 
