@@ -15,13 +15,12 @@ Design and implement the operational backbone:
 
 ## When to Use This Agent
 
+- **Every new project** — Part of the standard project pipeline after implementation
 - After implementation is complete (or substantially complete)
-- When setting up a new project's operational infrastructure
-- When adding deployment pipelines to an existing codebase
-- When improving observability or monitoring
+- When improving observability or monitoring in existing projects
 - When architect needs deployment strategy input
 
-**Run late in the pipeline** — This agent needs to understand what it's deploying.
+**Run late in the pipeline** — This agent needs to understand what it's deploying. In the standard project flow, it runs after implementation but before documentation and final quality gates.
 
 ## Core Principles
 

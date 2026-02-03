@@ -18,14 +18,6 @@ timeout_min: 120
 # To use: Start a conversation with project-orchestrator agent, or see:
 #   - agents/project-orchestrator.md
 #   - workflows/pipelines/modules/README.md
-#
-# FOR CI/CD SETUP:
-# Use the devops-engineer agent after feature is complete to set up:
-#   - GitHub Actions workflows
-#   - Deployment pipelines (Vercel, Supabase)
-#   - Observability (Sentry, PostHog)
-#   - Runbooks and health checks
-# See: agents/devops-engineer.md
 # ============================================================================
 
 # NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
