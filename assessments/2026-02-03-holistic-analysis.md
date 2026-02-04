@@ -763,3 +763,31 @@ Kickoff → PRD → Architecture → External Services → Orchestrator
 | Learnings documented in markdown | Learnings enforced via orchestrator constraints |
 
 **Bottom line:** Every trust boundary gets a verification step. Every learning gets enforcement within 2 weeks.
+
+---
+
+## Implementation Progress
+
+### Week 1: Core Architecture Fixes ✅ COMPLETE (2026-02-03)
+
+| Item | Status | Commit |
+|------|--------|--------|
+| Create `scripts/scope-verification.sh` | ✅ Done | e37c9b2 |
+| Update `project.pipeline` (reorder + scope gate) | ✅ Done | e37c9b2 |
+| Update `agents/orchestrator.md` (mandatory rules) | ✅ Done | e37c9b2 |
+| Enhance `quality-gate.sh` (5 new checks) | ✅ Done | e37c9b2 |
+| Create `prompts/requirements-tracking-template.md` | ✅ Done | e37c9b2 |
+
+**Branch:** `feature/verification-architecture`
+
+### Week 2: Quality Gate Testing ⏳ PENDING
+
+- [ ] Test scope-verification.sh against Constellation PRD
+- [ ] Test new quality-gate.sh checks against real project
+- [ ] Verify placeholder/stub detection patterns work
+
+### Week 3: Agent Strengthening ⏳ PENDING
+
+- [ ] Update `agents/devops-engineer.md` full-stack requirement
+- [ ] Update `prompts/definition-of-done-checklist.md` smoke test
+- [ ] Test on new project
