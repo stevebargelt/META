@@ -446,15 +446,30 @@ git push
 
 Before completing CI/CD setup:
 
+### CI (Continuous Integration)
 - [ ] All tests pass in CI
 - [ ] Build artifacts are created and cached
 - [ ] Security audit runs on PRs
-- [ ] Staging deploys from develop branch
+- [ ] Type checking passes
+
+### CD (Continuous Deployment) — REQUIRED, not optional
+- [ ] Staging deploys from develop branch (or preview on PR)
 - [ ] Production deploys from main branch
-- [ ] Sentry release created on deploy
-- [ ] Environment variables documented
+- [ ] Deployment workflow exists (Vercel, Netlify, or equivalent)
 - [ ] Rollback procedure tested
-- [ ] Health endpoints implemented
+
+### Observability — Backend AND Frontend
+- [ ] Sentry initialized in web app entry point (`@sentry/react` installed)
+- [ ] Sentry initialized in mobile app if applicable (`@sentry/react-native`)
+- [ ] Sentry configured in backend/BFF layer
+- [ ] Sentry release created on deploy (source maps uploaded)
+- [ ] PostHog initialized in web app (`posthog-js` installed)
+- [ ] PostHog configured in backend if using server-side analytics
+- [ ] Error boundary component wraps frontend app
+- [ ] Health endpoints implemented in backend
+
+### Documentation
+- [ ] Environment variables documented
 - [ ] Runbook created
 
 ## Anti-Patterns
@@ -467,6 +482,9 @@ Before completing CI/CD setup:
 - ❌ Logs without correlation IDs
 - ❌ Health checks that always return 200
 - ❌ Alerting on everything (alert fatigue)
+- ❌ **CI without CD** — Running tests/build but no deployment workflow
+- ❌ **Backend-only observability** — Sentry/PostHog in API but not in web/mobile app
+- ❌ **Documented but not installed** — `.env.example` has VITE_SENTRY_DSN but no `@sentry/react` in dependencies
 
 ## Integration with Other Agents
 

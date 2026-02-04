@@ -141,6 +141,38 @@ git commit -m "feat: complete feature"
 **Pattern files updated:** `agents/external-services-setup.md`, `patterns/deployment/supabase-setup.md`
 **Source:** Constellation (2026-02), [Supabase API Keys Docs](https://supabase.com/docs/guides/api/api-keys)
 
+### Generated Database Types
+
+**What:** Generate TypeScript types from Supabase schema using `supabase gen types typescript`
+**Why it works:** Full type safety for all database queries - autocomplete for tables/columns, compile-time errors for typos, typed return values
+**When to use:** Any Supabase project, run after schema changes
+**Pattern:**
+```bash
+supabase gen types typescript --project-id <id> > packages/shared-types/src/database.ts
+cd packages/shared-types && pnpm build
+```
+Then use in client:
+```typescript
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/database';
+export const supabase = createClient<Database>(url, key);
+```
+**Source:** Constellation (2026-02)
+
+### Explicit Data Layer Setup
+
+**What:** Create explicit pipeline step for data layer between backend and frontend implementation
+**Why it works:** Prevents frontend from using mock data; ensures hooks and providers exist before UI development
+**Step contents:**
+1. Generate database types
+2. Add QueryClientProvider to app entry point
+3. Create typed Supabase client (`lib/supabase.ts`)
+4. Create auth hooks (`useAuth`, `useCurrentUser`)
+5. Create entity hooks (`useTasks`, `useEvents`, etc.) using React Query
+6. Create any context providers needed
+**When to use:** Any project with separate backend and frontend
+**Source:** Constellation (2026-02)
+
 ---
 
 ## Model Selection

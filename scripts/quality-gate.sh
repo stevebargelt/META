@@ -18,7 +18,8 @@ set -euo pipefail
 #  8. Lint passes (npm run lint or eslint)
 #  9. OpenAPI valid (redocly lint if docs/openapi.yaml exists)
 # 10. Observability (correlation ID references in server code)
-# 11. Build succeeds (npm run build)
+# 11. No mock data in production code (detects mockData patterns)
+# 12. Build succeeds (npm run build)
 
 usage() {
   echo "Usage: quality-gate.sh --project <path>"
@@ -387,7 +388,33 @@ else
   result skip "Observability" "no server code directories found"
 fi
 
-# 11. Build succeeds (if build script exists)
+# 11. No mock data in production code
+# Check for common mock data patterns in source files (excluding tests, stories, mocks)
+src_dirs=""
+for d in src app lib components pages; do
+  [[ -d "$d" ]] && src_dirs="$src_dirs $d"
+done
+# Also check client/src, apps/web/src for monorepos
+for d in client/src apps/web/src apps/mobile/src frontend/src; do
+  [[ -d "$d" ]] && src_dirs="$src_dirs $d"
+done
+
+if [[ -n "$src_dirs" ]]; then
+  # Look for mock data patterns, excluding test files, stories, and mock directories
+  mock_files=$(grep -rl "mockData\|mockTasks\|mockEvents\|mockMeals\|mockRecipes\|mockUsers\|const mock" $src_dirs \
+    --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+    2>/dev/null | grep -v -E "\.test\.|\.spec\.|\.stories\.|__tests__|__mocks__|\.mock\." | wc -l | tr -d ' ')
+
+  if [[ "$mock_files" -gt 0 ]]; then
+    result fail "Mock data" "found mock data patterns in $mock_files production file(s)"
+  else
+    result pass "Mock data" "no mock data in production code"
+  fi
+else
+  result skip "Mock data" "no source directories found"
+fi
+
+# 12. Build succeeds (if build script exists)
 has_build_script() {
   local pkg="$1"
   grep -q '"build"[[:space:]]*:' "$pkg" 2>/dev/null
