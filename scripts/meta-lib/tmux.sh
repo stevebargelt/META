@@ -169,19 +169,24 @@ _tmux_get_all_pane_ids() {
 
 # Create a worker pane for a step
 # Sets TMUX_LAST_PANE_ID to the new pane's ID
+# $4 (optional): Title for the pane (e.g., "Step 3: Architect")
 TMUX_LAST_PANE_ID=""
 tmux_create_worker_pane() {
   local session="$1"
   local step_num="$2"
   local command="$3"
+  local title="${4:-Step $step_num}"
 
   local worker_count
   worker_count=$(_tmux_get_worker_count "$session")
   local pane_id
 
+  # Wrap command with header display
+  local wrapped_command="printf '\\n\\033[1;36m═══════════════════════════════════════\\033[0m\\n'; printf '\\033[1;37m  $title\\033[0m\\n'; printf '\\033[1;36m═══════════════════════════════════════\\033[0m\\n\\n'; $command"
+
   if [[ "$worker_count" -eq 0 ]]; then
     # First worker: split control pane vertically (control top 30%, worker bottom 70%)
-    pane_id=$(tmux split-window -v -t "${session}:0.0" -p 70 -P -F '#{pane_id}' "$command")
+    pane_id=$(tmux split-window -v -t "${session}:0.0" -p 70 -P -F '#{pane_id}' "$wrapped_command")
   else
     # Additional workers: split the last worker pane horizontally
     local last_pane
@@ -189,15 +194,18 @@ tmux_create_worker_pane() {
 
     if [[ -n "$last_pane" ]]; then
       # Split horizontally (side by side)
-      pane_id=$(tmux split-window -h -t "$last_pane" -P -F '#{pane_id}' "$command")
+      pane_id=$(tmux split-window -h -t "$last_pane" -P -F '#{pane_id}' "$wrapped_command")
     else
       # Fallback: split from control pane
-      pane_id=$(tmux split-window -v -t "${session}:0.0" -p 70 -P -F '#{pane_id}' "$command")
+      pane_id=$(tmux split-window -v -t "${session}:0.0" -p 70 -P -F '#{pane_id}' "$wrapped_command")
     fi
 
     # Rebalance layout after adding new pane
     tmux_rebalance_layout "$session"
   fi
+
+  # Set pane title (visible in status bar and when hovering)
+  tmux select-pane -t "$pane_id" -T "$title" >/dev/null 2>&1 || true
 
   _tmux_set_pane_id "$session" "$step_num" "$pane_id"
   TMUX_LAST_PANE_ID="$pane_id"

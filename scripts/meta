@@ -434,7 +434,8 @@ step_launch() {
   # Use pane layout: control on top, workers on bottom
   # Creates a new pane in the bottom area for this step
   echo "Step ${step_num} (${agent}). Opening in worker pane..."
-  tmux_create_worker_pane "$session" "$step_num" "bash \"$AGENT_RUN_FILE\""
+  local pane_title="Step ${step_num}: ${agent}"
+  tmux_create_worker_pane "$session" "$step_num" "bash \"$AGENT_RUN_FILE\"" "$pane_title"
 }
 
 run_step_serial() {
@@ -1178,17 +1179,46 @@ meta_run() {
     exit 0
   fi
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PRE-FLIGHT CHECK - Quick validation before launching pipeline
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Note: This is a quick sanity check. The pipeline itself has verification
+  # steps (preflight-gate in step 1, scope-verification after orchestrator).
+  # This pre-check catches obvious issues before spinning up tmux.
+
+  if [[ -x "${SCRIPT_DIR}/preflight-gate.sh" ]]; then
+    echo ""
+    echo "Running pre-flight check..."
+    if ! "${SCRIPT_DIR}/preflight-gate.sh" --project "$project" 2>/dev/null; then
+      echo ""
+      echo "⚠️  Pre-flight check found issues (see above)."
+      echo "   The pipeline will attempt to address these, but you may want to fix them first."
+      echo ""
+      read -p "Continue anyway? [Y/n] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Nn]$ ]]; then
+        die "Aborted. Fix issues before running pipeline."
+      fi
+    else
+      echo "✓ Pre-flight check passed"
+    fi
+    echo ""
+  fi
+
+  # ═══════════════════════════════════════════════════════════════════════════
+
   tmux_require
 
   local meta_dir="$project/.meta"
   mkdir -p "$meta_dir/steps/$run_id"
 
   if [[ "$continue_mode" == true ]]; then
-    # Continue mode: preserve existing handoff.md, just verify it exists
+    # Continue mode: preserve existing handoff.md and intelligently skip completed steps
     if [[ ! -f "$project/.meta/handoff.md" ]]; then
       die "--continue specified but no handoff.md found in $project/.meta/"
     fi
     echo "Continuing with existing handoff.md"
+    echo "Detecting completed phases..."
   else
     # New run: clean up old next.pipeline and initialize handoff
     rm -f "$meta_dir/next.pipeline" >/dev/null 2>&1 || true
@@ -1230,10 +1260,71 @@ meta_run() {
   state_set "$state_file" "flag_auto_retry" "$auto_retry"
   state_set "$state_file" "flag_max_retries" "$max_retries"
 
+  # Initialize all steps as pending first
   local idx
   for ((idx=1; idx<=WF_STEP_COUNT; idx++)); do
     state_set "$state_file" "step_${idx}" "pending"
   done
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SMART CONTINUE: Mark completed steps as done based on artifacts
+  # ═══════════════════════════════════════════════════════════════════════════
+  if [[ "$continue_mode" == true ]]; then
+    echo ""
+    echo "Detecting completed steps based on existing artifacts..."
+
+    local skip_to_step=0
+    local handoff_file="$project/.meta/handoff.md"
+
+    # For project pipeline, check if planning phases are complete
+    if [[ "$pipeline_name" == "project" ]]; then
+      # Check multiple indicators that planning is done:
+      # 1. "Ready for Build" or "Next Phase: Build" marker
+      # 2. Completed phases documented in handoff
+      # 3. All required docs exist
+      local planning_complete=false
+
+      if grep -q "Ready for Build Pipeline\|Next Phase: Build\|## Completed Phases" "$handoff_file" 2>/dev/null; then
+        # Check if PRD and Architecture docs exist
+        if [[ -f "$project/docs/PRD.md" && -f "$project/docs/ARCHITECTURE.md" ]]; then
+          # Check if external services are documented
+          if [[ -f "$project/.env.example" ]]; then
+            planning_complete=true
+            echo "  ✓ Planning phases complete (docs + .env.example exist)"
+          elif grep -q "External.*[Ss]ervices\|EXTERNAL.*SERVICES" "$handoff_file" 2>/dev/null; then
+            planning_complete=true
+            echo "  ✓ Planning phases complete (docs + external services documented)"
+          fi
+        fi
+      fi
+
+      if [[ "$planning_complete" == true ]]; then
+        # Mark steps 1-5 as done (preflight, kickoff, PRD, architecture, external services)
+        for ((idx=1; idx<=5; idx++)); do
+          state_set "$state_file" "step_${idx}" "done"
+          echo "  ✓ Step $idx: Marked as done"
+        done
+        skip_to_step=6
+        echo ""
+        echo "→ Continuing from step 6 (orchestrator)"
+      else
+        echo "  ℹ Planning phases not detected as complete - starting from beginning"
+        echo "     (Need: PRD.md + ARCHITECTURE.md + .env.example or external services doc)"
+      fi
+
+    # For feature/bugfix pipelines, check if there's a next.pipeline
+    elif [[ -f "$project/.meta/next.pipeline" ]]; then
+      echo "  ✓ Found .meta/next.pipeline"
+      echo "  → Will execute existing pipeline"
+      skip_to_step=1
+    fi
+
+    if [[ $skip_to_step -gt 0 ]]; then
+      state_set "$state_file" "current_step" "$((skip_to_step - 1))"
+    fi
+    echo ""
+  fi
+  # ═══════════════════════════════════════════════════════════════════════════
 
   local control_flags=""
   if [[ -n "$default_cli" ]]; then

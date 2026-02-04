@@ -10,21 +10,28 @@ set -euo pipefail
 #  2. Must-Have features in PRD have implementation steps
 #  3. Gaps are either covered in pipeline OR explicitly deferred in docs/DEFERRED.md
 #
-# Usage: scope-verification.sh --project <path>
+# Usage: scope-verification.sh --project <path> [--pipeline <path>]
 
 usage() {
-  echo "Usage: scope-verification.sh --project <path>"
+  echo "Usage: scope-verification.sh --project <path> [--pipeline <path>]"
   echo ""
   echo "Compares PRD requirements against generated pipeline."
   echo "Fails if any PRD item is missing from pipeline without explicit deferral."
+  echo ""
+  echo "Options:"
+  echo "  --project <path>   Project directory (required)"
+  echo "  --pipeline <path>  Pipeline file to verify (optional, auto-detects if not provided)"
+  echo "  --verbose, -v      Show detailed output"
 }
 
 PROJECT=""
+PIPELINE_ARG=""
 VERBOSE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --project) PROJECT="$2"; shift 2 ;;
+    --pipeline) PIPELINE_ARG="$2"; shift 2 ;;
     --verbose|-v) VERBOSE=true; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
@@ -59,15 +66,27 @@ if [[ -z "$PRD_FILE" ]]; then
 fi
 
 PIPELINE_FILE=""
-for pipeline in .meta/next.pipeline .meta/composed.pipeline; do
-  if [[ -f "$pipeline" ]]; then
-    PIPELINE_FILE="$pipeline"
-    break
+if [[ -n "$PIPELINE_ARG" ]]; then
+  # Use explicitly provided pipeline
+  if [[ -f "$PIPELINE_ARG" ]]; then
+    PIPELINE_FILE="$PIPELINE_ARG"
+  else
+    echo "Error: Pipeline file not found: $PIPELINE_ARG" >&2
+    exit 1
   fi
-done
+else
+  # Auto-detect pipeline in project
+  for pipeline in .meta/next.pipeline .meta/composed.pipeline; do
+    if [[ -f "$pipeline" ]]; then
+      PIPELINE_FILE="$pipeline"
+      break
+    fi
+  done
+fi
 
 if [[ -z "$PIPELINE_FILE" ]]; then
   echo "Error: No pipeline file found (.meta/next.pipeline or .meta/composed.pipeline)" >&2
+  echo "       Provide one with --pipeline or create one in the project." >&2
   exit 1
 fi
 
