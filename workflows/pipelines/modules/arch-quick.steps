@@ -1,0 +1,6 @@
+# Architecture Quick Module
+# Automated architecture design based on PRD
+# Prerequisites: PRD exists at docs/PRD-<feature-name>.md
+
+# NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+N | architect | - | gate | - | 30 | Design feature architecture. If this is a full-stack feature, identify backend and frontend workstreams that can run in parallel. Update docs/ARCHITECTURE.md with feature additions and update .meta/handoff.md with design decisions and parallel workstream plan.

@@ -13,7 +13,7 @@ Break complex work into:
 - **Quality gates** — Reviews happen at right points
 
 **Agent constraint:** Use only agent definitions that exist in `META/agents/`:
-`base`, `product-manager`, `product-researcher`, `architect`, `tester`, `reviewer`, `debugger`, `documenter`, `orchestrator`.
+`base`, `product-manager`, `product-researcher`, `architect`, `ux-designer`, `tester`, `reviewer`, `debugger`, `documenter`, `devops-engineer`, `orchestrator`.
 Do not invent new agent names.
 
 ## When to Orchestrate
@@ -140,14 +140,74 @@ When tasks can run simultaneously:
 
 ## Pipeline Parallelization Requirement
 
-When generating a pipeline, you must:
+**CRITICAL:** Parallelization is MANDATORY for multi-component projects. When generating a pipeline, you MUST:
 
-- Identify independent tasks and assign a shared `PARALLEL_GROUP` label
-- Default assumption: client and server workstreams can run in parallel after architecture
+- **Identify and parallelize** independent tasks by assigning shared `PARALLEL_GROUP` labels
+- **Strong default:** Backend and frontend ALWAYS run in parallel after contracts are defined
+- **Strong default:** Web and mobile clients run in parallel after data layer setup
+- **Strong default:** Multiple backend services run in parallel
 - If any parallelism is planned, insert a **contract stub step** before parallel groups using `META/prompts/contract-stub.md`. OpenAPI (`docs/openapi.yaml`) is required unless explicitly justified.
 - OpenAPI validation is automatic via `META/scripts/quality-gate.sh` — no separate validation step needed.
-- If no parallelism is safe, explicitly state why in `.meta/handoff.md` and add the template block below
+- **ONLY skip parallelization if there's a BLOCKING technical constraint** (e.g., monolithic codebase with shared state, circular dependencies that must be refactored first)
+- Vague reasons like "safer", "simpler", or "less complex" are NOT acceptable - these are signs of over-caution
+- If claiming no parallelism is possible, you MUST provide specific technical blockers and get explicit approval
 - Ensure groups are scoped so agents do not edit the same files concurrently
+
+**Common Parallel Patterns You Should Use:**
+- Backend + Frontend (after OpenAPI contract)
+- Web client + Mobile client (after data layer)
+- Service A + Service B (independent services)
+- **Feature A + Feature B + Feature C** (independent features in feature-first structure)
+- Tests + Documentation (after implementation)
+
+**Feature Parallelization (CRITICAL):**
+When using feature-first structure (features/), **you MUST parallelize independent features**:
+- ✅ CORRECT: `features/calendar`, `features/tasks`, `features/profile` all in same PARALLEL_GROUP
+- ❌ WRONG: Building features sequentially when they don't share files or state
+
+**Why this matters:** A 5-feature app built sequentially takes 5x longer than necessary. Feature-first architecture exists specifically to enable parallel development - use it!
+
+**Example: Properly Parallelized Web+Mobile+Backend Pipeline with Features**
+
+```
+name: constellation-build
+description: Build Constellation app with proper parallelization
+timeout_min: 120
+
+1 | base | - | auto | - | 10 | Database migrations and schema setup
+2 | base | - | auto | - | 10 | Generate shared types from database schema
+3 | base | - | gate | - | 15 | Contract stub: Create OpenAPI spec (use META/prompts/contract-stub.md)
+4 | base | - | auto | backend | 30 | Backend: Implement Edge Functions per OpenAPI spec
+5 | base | - | auto | backend | 20 | Backend: Implement CalDAV integration
+6 | base | - | auto | - | 10 | Build validation: npm run build && npm test
+7 | base | - | auto | - | 20 | Data layer: Generate types, QueryClient, auth hooks, entity hooks
+
+# Feature parallelization (web app)
+8 | base | - | auto | web-features | 30 | Web: features/calendar (UI, state, tests)
+9 | base | - | auto | web-features | 30 | Web: features/tasks (UI, state, tests)
+10 | base | - | auto | web-features | 30 | Web: features/meals (UI, state, tests)
+11 | base | - | auto | web-features | 30 | Web: features/recipes (UI, state, tests)
+12 | base | - | auto | - | 10 | Build validation: npm run build && npm test
+
+# Feature parallelization (mobile app)
+13 | base | - | auto | mobile-features | 30 | Mobile: features/calendar (UI, state, tests)
+14 | base | - | auto | mobile-features | 30 | Mobile: features/tasks (UI, state, tests)
+15 | base | - | auto | mobile-features | 30 | Mobile: features/meals (UI, state, tests)
+16 | base | - | auto | mobile-features | 30 | Mobile: features/recipes (UI, state, tests)
+17 | base | - | auto | - | 10 | Build validation: npm run build && npm test
+
+18 | tester | - | auto | - | 20 | Integration tests across features
+19 | devops-engineer | - | auto | - | 30 | CI/CD setup, deployment, observability
+20 | base | - | gate | - | 15 | Definition of Done checklist
+21 | base | - | gate | - | 10 | Quality gate: Run META/scripts/quality-gate.sh
+```
+
+**Why this works:**
+- Steps 4-5: Backend services run in parallel (group "backend")
+- Steps 8-11: All web features run in parallel (group "web-features") - 4x speedup!
+- Steps 13-16: All mobile features run in parallel (group "mobile-features") - 4x speedup!
+- Build validation after each parallel group (steps 6, 12, 17)
+- **Total time saved:** Instead of 16 feature steps running sequentially (8 hours), they run in 2 parallel groups (2 hours)
 
 ### PARALLEL_GROUP Column Semantics
 
@@ -175,15 +235,19 @@ Different values (`backend` vs `frontend`) → they run one after another, not i
 
 **Rule:** To parallelize steps, give them the **same** `PARALLEL_GROUP` value.
 
-If no parallelism is possible, add this to `.meta/handoff.md`:
+**Note:** The parallelization-analyzer agent (step 6.5 in project.pipeline) will perform deep dependency analysis and optimize your pipeline for fine-grained feature-level parallelization. Your job as orchestrator is to:
+1. Generate correct pipeline STRUCTURE (what steps, what order)
+2. Identify all platforms and features from PRD
+3. Include ALL required phases (contracts, data layer, tests, etc.)
+4. Provide coarse-grained parallelization hints where obvious (backend services, platforms)
 
-```markdown
-## Parallelization Decision
+The parallelization-analyzer will read your pipeline and optimize it by:
+- Extracting features from PRD
+- Building dependency graphs from ARCHITECTURE.md
+- Validating safety (FK constraints, file conflicts)
+- Splitting coarse steps into fine-grained parallel feature steps
 
-**Parallel groups:** none
-**Reason:** [Why parallelism is unsafe or not applicable]
-**Revisit point:** [When to re-evaluate parallelism]
-```
+**You do NOT need to write parallelization decisions to handoff.md** - the analyzer will document this in `.meta/parallelization-analysis.md`.
 
 ## Parallelization Playbook
 
@@ -334,6 +398,85 @@ When orchestrating, decide:
 - Don't leave `PARALLEL_GROUP` empty when tasks are independent
 - Don't skip quality gates to save time
 - Don't hand off work without clear task definition
+- **Don't silently reduce scope** — If PRD says "web + mobile", the pipeline MUST include both or explicitly document why not
+- **Don't use layer-first structure** — Default to feature-first (features/ not components/services/) per `META/patterns/project-structures/feature-first.md`
+
+## Mandatory Phase Rules
+
+**CRITICAL:** When generating a pipeline, the following rules are **blocking constraints**, not suggestions. The pipeline MUST include these phases when conditions apply.
+
+### Rule 1: Scope Coverage
+
+```
+IF PRD specifies multiple platforms (web, mobile, desktop, CLI):
+  THEN pipeline MUST include implementation steps for EACH platform
+  OR orchestrator MUST stop and request explicit approval for deferrals
+```
+
+Do NOT silently drop platforms. If the PRD says "React web app and React Native mobile app", both must have implementation steps.
+
+### Rule 2: Contract Before Parallel
+
+```
+IF pipeline has parallel work (multiple steps with same PARALLEL_GROUP):
+  THEN a contract stub step MUST precede the parallel group
+  AND a build validation step MUST follow the parallel group
+```
+
+Use `META/prompts/contract-stub.md` for contracts. Build validation runs `npm run build && npm test`.
+
+### Rule 3: Data Layer Before Frontend
+
+```
+IF pipeline has backend implementation:
+  AND pipeline has frontend implementation:
+  THEN a DATA LAYER SETUP step MUST exist between them
+```
+
+Data layer setup includes:
+1. Generate database types (`supabase gen types typescript`)
+2. Set up QueryClientProvider in app entry point
+3. Create typed API client (`lib/supabase.ts` or `lib/api.ts`)
+4. Create auth hooks (`useAuth`, `useCurrentUser`)
+5. Create entity hooks for domain objects (`useTasks`, `useEvents`, etc.)
+
+Frontend steps MUST use these hooks with REAL data. Mock data is only allowed in tests.
+
+### Rule 4: Full-Stack Observability
+
+```
+IF pipeline has devops-engineer step:
+  THEN observability MUST be configured for BOTH backend AND frontend
+```
+
+Backend: Sentry error tracking, structured logging with correlation IDs
+Frontend: `@sentry/react` with ErrorBoundary, `posthog-js` for analytics
+
+### Rule 5: Frontend Tests Required
+
+```
+IF pipeline has frontend implementation:
+  THEN a tester step for frontend MUST exist
+```
+
+Configure Vitest + Testing Library. Test component interactions, data display, error states.
+
+### Rule 6: DoD and Quality Gate
+
+```
+ALL pipelines MUST include:
+  - Definition-of-Done checklist step with gate (use META/prompts/definition-of-done-checklist.md)
+  - Final quality gate step that runs META/scripts/quality-gate.sh
+```
+
+### Enforcement
+
+If any mandatory rule cannot be satisfied, the orchestrator MUST:
+1. Document which rule cannot be satisfied and why
+2. Stop and request explicit user approval
+3. NOT proceed with a non-compliant pipeline
+
+The scope verification gate (`META/scripts/scope-verification.sh`) will catch PRD/pipeline mismatches after pipeline generation. Better to catch issues during generation than at verification.
 
 ## Context Reset Handling
 

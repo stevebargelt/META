@@ -86,3 +86,41 @@ state_print_summary() {
 
   grep -E '^step_[0-9]+=' "$file" || true
 }
+
+# Set group state
+state_set_group() {
+  local state_file="$1"
+  local group_name="$2"
+  local status="$3"  # running|done|failed
+
+  state_set "$state_file" "group_${group_name}" "$status"
+  state_set "$state_file" "group_${group_name}_time" "$(date +%s)"
+}
+
+# Get group state
+state_get_group() {
+  local state_file="$1"
+  local group_name="$2"
+
+  state_get "$state_file" "group_${group_name}" 2>/dev/null || echo "pending"
+}
+
+# Set wave state
+state_set_wave() {
+  local state_file="$1"
+  local wave_num="$2"
+  local status="$3"  # running|done|failed
+  local groups="$4"  # Space-separated group names
+
+  state_set "$state_file" "wave_${wave_num}" "$status"
+  state_set "$state_file" "wave_${wave_num}_groups" "$groups"
+  state_set "$state_file" "wave_${wave_num}_time" "$(date +%s)"
+}
+
+# Get wave state
+state_get_wave() {
+  local state_file="$1"
+  local wave_num="$2"
+
+  state_get "$state_file" "wave_${wave_num}" 2>/dev/null || echo "pending"
+}

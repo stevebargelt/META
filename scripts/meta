@@ -426,22 +426,16 @@ step_launch() {
     return 1
   fi
 
-  local window_name
-  window_name="step-${step_num}-${agent}"
-
   rm -f "$AGENT_EXIT_FILE" >/dev/null 2>&1 || true
   if [[ "$handoff_file" == *"handoff-step-"* ]]; then
     rm -f "$project/.meta/steps/$run_id/step-${step_num}.merged" >/dev/null 2>&1 || true
   fi
 
-  if [[ "$cli" == "claude-interactive" || "$cli" == "codex-interactive" ]]; then
-    # Split pane for interactive steps - keeps control window visible
-    echo "Interactive step ${step_num} (${agent}). Opening in split pane..."
-    tmux_split_pane "$session" "v" "50" "bash \"$AGENT_RUN_FILE\""
-  else
-    # Regular window for non-interactive steps
-    tmux_new_window "$session" "$window_name" "bash \"$AGENT_RUN_FILE\""
-  fi
+  # Use pane layout: control on top, workers on bottom
+  # Creates a new pane in the bottom area for this step
+  echo "Step ${step_num} (${agent}). Opening in worker pane..."
+  local pane_title="Step ${step_num}: ${agent}"
+  tmux_create_worker_pane "$session" "$step_num" "bash \"$AGENT_RUN_FILE\"" "$pane_title"
 }
 
 run_step_serial() {
@@ -481,8 +475,8 @@ run_step_serial() {
           fi
         fi
       fi
-      # Auto-close step window on success (logs saved to .meta/steps/)
-      tmux_kill_window "$session" "step-${step_num}"
+      # Auto-close step pane on success (logs saved to .meta/steps/)
+      tmux_remove_worker_pane "$session" "$step_num"
       return 0
     fi
 
@@ -548,6 +542,187 @@ run_step_serial() {
         ;;
     esac
   done
+}
+
+# Execute a wave containing multiple concurrent parallel groups
+execute_wave_concurrent() {
+  local session="$1"
+  local project="$2"
+  local run_id="$3"
+  local wave_groups="$4"  # Space-separated "group:start-end" strings
+  local state_file="$5"
+  local default_cli="$6"
+  local unsafe_flag="$7"
+
+  echo ""
+  echo "═══════════════════════════════════════"
+  echo "🌊 Wave with multiple concurrent groups:"
+  echo "$wave_groups" | tr ' ' '\n' | sed 's/^/  - /' | sed 's/:/ (steps /' | sed 's/-/ to /' | sed 's/$/)/'
+  echo "═══════════════════════════════════════"
+
+  # Phase 1: Launch all groups in wave
+  local group_metadata=()
+  local group
+  for group in $wave_groups; do
+    IFS=':' read -r group_name group_range <<< "$group"
+    IFS='-' read -r group_start group_end <<< "$group_range"
+
+    echo ""
+    echo "🚀 Launching group: $group_name (steps $group_start-$group_end)"
+
+    # Track group state
+    state_set_group "$state_file" "$group_name" "running"
+
+    # Launch all steps in this group
+    local j
+    for ((j=group_start; j<=group_end; j++)); do
+      local step_status
+      step_status=$(state_get "$state_file" "step_${j}" 2>/dev/null || echo "pending")
+      if [[ "$step_status" != "done" && "$step_status" != "skipped" ]]; then
+        local agent="${WF_STEP_AGENT[$j]}"
+        local cli=$(select_cli "${WF_STEP_CLI[$j]}" "$default_cli")
+        local prompt="${WF_STEP_PROMPT[$j]}"
+        local handoff_file
+        handoff_file="$(handoff_step_file "$project" "$j")"
+
+        state_set "$state_file" "current_step" "$j"
+        state_set "$state_file" "step_${j}" "running"
+
+        step_launch "$session" "$project" "$run_id" "$j" "$agent" "$cli" "$prompt" "$handoff_file" "$unsafe_flag"
+      fi
+    done
+
+    # Track group metadata for wait phase
+    group_metadata+=("$group_name:$group_start-$group_end")
+  done
+
+  # Phase 2: Wait for all groups concurrently
+  echo ""
+  echo "⏳ Waiting for all groups to complete..."
+
+  local failed_groups=()
+  local completed_steps=()
+
+  for group in "${group_metadata[@]}"; do
+    IFS=':' read -r group_name group_range <<< "$group"
+    IFS='-' read -r group_start group_end <<< "$group_range"
+
+    echo "  Monitoring group: $group_name"
+
+    # Wait for all steps in this group
+    local group_failed=false
+    local j
+    for ((j=group_start; j<=group_end; j++)); do
+      local step_status
+      step_status=$(state_get "$state_file" "step_${j}" 2>/dev/null || echo "pending")
+      if [[ "$step_status" == "done" || "$step_status" == "skipped" ]]; then
+        completed_steps+=("$j")
+        continue
+      fi
+
+      local timeout_min="${WF_STEP_TIMEOUT[$j]}"
+      local exit_file="$project/.meta/steps/$run_id/step-${j}.exit"
+      local wait_result
+      wait_result=$(step_wait "$exit_file" "$((timeout_min * 60))")
+
+      if [[ "$wait_result" == "success" ]]; then
+        state_set "$state_file" "step_${j}" "done"
+        completed_steps+=("$j")
+        tmux_remove_worker_pane "$session" "$j"
+      else
+        state_set "$state_file" "step_${j}" "failed"
+        group_failed=true
+        echo "    ❌ Step $j failed: $wait_result"
+      fi
+    done
+
+    if [[ "$group_failed" == true ]]; then
+      failed_groups+=("$group_name")
+      state_set_group "$state_file" "$group_name" "failed"
+    else
+      state_set_group "$state_file" "$group_name" "done"
+      echo "  ✅ Group $group_name complete"
+    fi
+  done
+
+  # Phase 3: Handle failures
+  if [[ ${#failed_groups[@]} -gt 0 ]]; then
+    echo ""
+    echo "⚠️  Failed groups in wave: ${failed_groups[*]}"
+    echo "Other groups may have completed successfully."
+    echo "Resume will retry only failed groups."
+    return 1
+  fi
+
+  # Phase 4: Handle gate steps
+  echo ""
+  echo "🚪 Processing gates for completed steps..."
+  local step
+  for step in "${completed_steps[@]}"; do
+    if [[ "${WF_STEP_GATE[$step]}" == "gate" ]]; then
+      local gate_status
+      gate_status=$(state_get "$state_file" "gate_${step}" 2>/dev/null || echo "")
+      if [[ "$gate_status" != "done" ]]; then
+        local agent="${WF_STEP_AGENT[$step]}"
+        local cli_for_gate=$(select_cli "${WF_STEP_CLI[$step]}" "$default_cli")
+        local prompt_for_gate="${WF_STEP_PROMPT[$step]}"
+        local log_file="$project/.meta/steps/$run_id/step-${step}.log"
+        local pipeline
+        pipeline=$(state_get "$state_file" "pipeline_file" || echo "")
+
+        local decision
+        decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$step" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+        gate_accumulate_wait "$state_file"
+
+        case "$decision" in
+          approve)
+            state_set "$state_file" "gate_${step}" "done"
+            ;;
+          retry)
+            local handoff_file
+            handoff_file="$(handoff_step_file "$project" "$step")"
+            local timeout_min="${WF_STEP_TIMEOUT[$step]}"
+
+            if ! run_step_serial "$session" "$project" "$run_id" "$step" "$agent" "$cli_for_gate" "$prompt_for_gate" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
+              return 1
+            fi
+            handoff_merge_step "$project" "$run_id" "$step" "$agent"
+            state_set "$state_file" "gate_${step}" "done"
+            ;;
+          skip)
+            state_set "$state_file" "step_${step}" "skipped"
+            state_set "$state_file" "gate_${step}" "done"
+            ;;
+          abort)
+            echo "Aborting pipeline."
+            return 1
+            ;;
+        esac
+      fi
+    fi
+  done
+
+  # Phase 5: Merge handoffs from all completed steps
+  echo ""
+  echo "📝 Merging handoffs from completed steps..."
+  for step in "${completed_steps[@]}"; do
+    local agent="${WF_STEP_AGENT[$step]}"
+    handoff_merge_step "$project" "$run_id" "$step" "$agent"
+  done
+
+  # Phase 6: Auto-commit after wave completion
+  if [[ "${META_AUTO_COMMIT:-1}" == "1" ]]; then
+    if command -v git >/dev/null 2>&1 && git -C "$project" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      if [[ -n "$(git -C "$project" status --porcelain 2>/dev/null)" ]]; then
+        local wave_group_names
+        wave_group_names=$(echo "$wave_groups" | tr ' ' '\n' | cut -d: -f1 | tr '\n' ' ')
+        git -C "$project" add -A && git -C "$project" commit -m "meta: wave complete (${wave_group_names})" --no-verify 2>/dev/null || true
+      fi
+    fi
+  fi
+
+  echo "✅ Wave complete - all groups succeeded"
+  return 0
 }
 
 control_run() {
@@ -656,6 +831,9 @@ control_run() {
   echo "Run ID: ${run_id}"
   echo ""
 
+  # Detect waves for parallel execution optimization (stored globally for lookup)
+  WAVES_OUTPUT=$(detect_waves)
+
   local idx=1
   while [[ "$idx" -le "$WF_STEP_COUNT" ]]; do
     local status
@@ -737,6 +915,78 @@ control_run() {
     group="${WF_STEP_GROUP[$idx]}"
 
     if [[ -n "$group" ]]; then
+      # Check if this group is part of a multi-group wave
+      local wave_groups=""
+      local found_multi_group_wave=false
+
+      if [[ -n "$WAVES_OUTPUT" ]]; then
+        while IFS= read -r wave_line; do
+          if [[ -z "$wave_line" ]]; then
+            continue
+          fi
+
+          local wg_list
+          IFS='=' read -r _ wg_list <<< "$wave_line"
+
+          # Check if current group is in this wave
+          local wg
+          for wg in $wg_list; do
+            IFS=':' read -r wg_name wg_range <<< "$wg"
+            IFS='-' read -r wg_start wg_end <<< "$wg_range"
+
+            if [[ "$idx" -ge "$wg_start" && "$idx" -le "$wg_end" && "$group" == "$wg_name" ]]; then
+              # Found the wave containing this group
+              local group_count
+              group_count=$(echo "$wg_list" | wc -w)
+
+              if [[ "$group_count" -gt 1 ]]; then
+                # This is a multi-group wave
+                wave_groups="$wg_list"
+                found_multi_group_wave=true
+              fi
+              break 2
+            fi
+          done
+        done <<< "$WAVES_OUTPUT"
+      fi
+
+      if [[ "$found_multi_group_wave" == true ]]; then
+        # Multi-group wave - use concurrent execution
+        if ! execute_wave_concurrent "$session" "$project" "$run_id" "$wave_groups" "$state_file" "$default_cli" "$unsafe_flag"; then
+          echo "Wave execution failed. Check logs and resume when ready."
+          return 1
+        fi
+
+        # Skip past all groups in this wave
+        local last_step_in_wave=0
+        local wg
+        for wg in $wave_groups; do
+          IFS=':' read -r _ wg_range <<< "$wg"
+          IFS='-' read -r _ wg_end <<< "$wg_range"
+          if [[ "$wg_end" -gt "$last_step_in_wave" ]]; then
+            last_step_in_wave=$wg_end
+          fi
+        done
+
+        idx=$((last_step_in_wave + 1))
+
+        # Check for pipeline switch after wave
+        local switch_result
+        if pipeline_switch "$project" "$run_id" "$state_file"; then
+          pipeline=$(state_get "$state_file" "pipeline_file" || true)
+          pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
+          idx=1
+        else
+          switch_result=$?
+          if [[ "$switch_result" -eq 2 ]]; then
+            return 1
+          fi
+        fi
+
+        continue
+      fi
+
+      # Single-group wave or no wave info - use existing logic
       local group_start=$idx
       local group_end=$idx
       while [[ "$group_end" -le "$WF_STEP_COUNT" ]]; do
@@ -794,8 +1044,8 @@ control_run() {
         if [[ "$wait_result" == "success" ]]; then
           state_set "$state_file" "step_${step}" "done"
           completed_steps+=("$step")
-          # Auto-close step window on success
-          tmux_kill_window "$session" "step-${step}"
+          # Auto-close step pane on success
+          tmux_remove_worker_pane "$session" "$step"
         else
           state_set "$state_file" "step_${step}" "failed"
           failed_steps+=("${step}:${wait_result}")
@@ -1185,17 +1435,46 @@ meta_run() {
     exit 0
   fi
 
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PRE-FLIGHT CHECK - Quick validation before launching pipeline
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Note: This is a quick sanity check. The pipeline itself has verification
+  # steps (preflight-gate in step 1, scope-verification after orchestrator).
+  # This pre-check catches obvious issues before spinning up tmux.
+
+  if [[ -x "${SCRIPT_DIR}/preflight-gate.sh" ]]; then
+    echo ""
+    echo "Running pre-flight check..."
+    if ! "${SCRIPT_DIR}/preflight-gate.sh" --project "$project" 2>/dev/null; then
+      echo ""
+      echo "⚠️  Pre-flight check found issues (see above)."
+      echo "   The pipeline will attempt to address these, but you may want to fix them first."
+      echo ""
+      read -p "Continue anyway? [Y/n] " -n 1 -r
+      echo
+      if [[ $REPLY =~ ^[Nn]$ ]]; then
+        die "Aborted. Fix issues before running pipeline."
+      fi
+    else
+      echo "✓ Pre-flight check passed"
+    fi
+    echo ""
+  fi
+
+  # ═══════════════════════════════════════════════════════════════════════════
+
   tmux_require
 
   local meta_dir="$project/.meta"
   mkdir -p "$meta_dir/steps/$run_id"
 
   if [[ "$continue_mode" == true ]]; then
-    # Continue mode: preserve existing handoff.md, just verify it exists
+    # Continue mode: preserve existing handoff.md and intelligently skip completed steps
     if [[ ! -f "$project/.meta/handoff.md" ]]; then
       die "--continue specified but no handoff.md found in $project/.meta/"
     fi
     echo "Continuing with existing handoff.md"
+    echo "Detecting completed phases..."
   else
     # New run: clean up old next.pipeline and initialize handoff
     rm -f "$meta_dir/next.pipeline" >/dev/null 2>&1 || true
@@ -1237,10 +1516,71 @@ meta_run() {
   state_set "$state_file" "flag_auto_retry" "$auto_retry"
   state_set "$state_file" "flag_max_retries" "$max_retries"
 
+  # Initialize all steps as pending first
   local idx
   for ((idx=1; idx<=WF_STEP_COUNT; idx++)); do
     state_set "$state_file" "step_${idx}" "pending"
   done
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SMART CONTINUE: Mark completed steps as done based on artifacts
+  # ═══════════════════════════════════════════════════════════════════════════
+  if [[ "$continue_mode" == true ]]; then
+    echo ""
+    echo "Detecting completed steps based on existing artifacts..."
+
+    local skip_to_step=0
+    local handoff_file="$project/.meta/handoff.md"
+
+    # For project pipeline, check if planning phases are complete
+    if [[ "$pipeline_name" == "project" ]]; then
+      # Check multiple indicators that planning is done:
+      # 1. "Ready for Build" or "Next Phase: Build" marker
+      # 2. Completed phases documented in handoff
+      # 3. All required docs exist
+      local planning_complete=false
+
+      if grep -q "Ready for Build Pipeline\|Next Phase: Build\|## Completed Phases" "$handoff_file" 2>/dev/null; then
+        # Check if PRD and Architecture docs exist
+        if [[ -f "$project/docs/PRD.md" && -f "$project/docs/ARCHITECTURE.md" ]]; then
+          # Check if external services are documented
+          if [[ -f "$project/.env.example" ]]; then
+            planning_complete=true
+            echo "  ✓ Planning phases complete (docs + .env.example exist)"
+          elif grep -q "External.*[Ss]ervices\|EXTERNAL.*SERVICES" "$handoff_file" 2>/dev/null; then
+            planning_complete=true
+            echo "  ✓ Planning phases complete (docs + external services documented)"
+          fi
+        fi
+      fi
+
+      if [[ "$planning_complete" == true ]]; then
+        # Mark steps 1-5 as done (preflight, kickoff, PRD, architecture, external services)
+        for ((idx=1; idx<=5; idx++)); do
+          state_set "$state_file" "step_${idx}" "done"
+          echo "  ✓ Step $idx: Marked as done"
+        done
+        skip_to_step=6
+        echo ""
+        echo "→ Continuing from step 6 (orchestrator)"
+      else
+        echo "  ℹ Planning phases not detected as complete - starting from beginning"
+        echo "     (Need: PRD.md + ARCHITECTURE.md + .env.example or external services doc)"
+      fi
+
+    # For feature/bugfix pipelines, check if there's a next.pipeline
+    elif [[ -f "$project/.meta/next.pipeline" ]]; then
+      echo "  ✓ Found .meta/next.pipeline"
+      echo "  → Will execute existing pipeline"
+      skip_to_step=1
+    fi
+
+    if [[ $skip_to_step -gt 0 ]]; then
+      state_set "$state_file" "current_step" "$((skip_to_step - 1))"
+    fi
+    echo ""
+  fi
+  # ═══════════════════════════════════════════════════════════════════════════
 
   local control_flags=""
   if [[ -n "$default_cli" ]]; then
@@ -1278,7 +1618,9 @@ EOF_CTRL
   fi
 
   tmux_create_session "$session" "control" "bash \"$control_script\""
+  tmux_init_layout "$session"
   echo "Created tmux session: $session"
+  echo "Layout: Control pane (top), worker panes (bottom)"
   tmux_attach "$session"
 }
 
@@ -1508,6 +1850,7 @@ EOF_CTRL
   tmux_require
 
   tmux_create_session "$session" "control" "bash \"$control_script\""
+  tmux_init_layout "$session"
   tmux_attach "$session"
 }
 
@@ -1551,6 +1894,7 @@ meta_abort() {
   local session
   session=$(state_get "$state_file" "session" || true)
   if [[ -n "$session" ]]; then
+    tmux_cleanup_layout "$session"
     tmux_kill_session "$session"
   fi
 

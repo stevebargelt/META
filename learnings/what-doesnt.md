@@ -2,7 +2,7 @@
 
 Anti-patterns and approaches to avoid, learned from real experience.
 
-**Last Updated:** 2026-01-29
+**Last Updated:** 2026-02-03
 
 ---
 
@@ -56,6 +56,18 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Instead:** Implement observability in the base API stack (correlation IDs, structured logs, tracing hooks)
 **Source:** test-app (2026-01), test-app-2 (2026-01)
 
+### Backend-Only Observability
+
+**What:** DevOps agent sets up Sentry/PostHog in backend/BFF but not in frontend
+**Why it fails:** Frontend errors go completely untracked. No user analytics from client. Can't correlate user actions to backend traces. When users report bugs, you have no visibility into what happened on their end.
+**Example:** Constellation had full tracing in Edge Functions (`tracing.ts`, `analytics.ts`) with Sentry + PostHog, but web app had no `@sentry/react` or `posthog-js` installed despite `.env.example` having `VITE_SENTRY_DSN` and `VITE_POSTHOG_API_KEY` ready
+**Instead:**
+- Observability checklist must verify BOTH backend AND frontend instrumentation
+- DevOps agent should install and configure client-side SDKs (Sentry, PostHog) in same step as backend
+- Error boundary component with Sentry integration should be standard
+- Frontend should generate/propagate trace IDs to backend calls
+**Source:** Constellation (2026-02)
+
 ### Missing OpenAPI Contract Stub
 
 **What:** Parallel work begins without an OpenAPI (or equivalent) contract stub
@@ -67,6 +79,14 @@ Anti-patterns and approaches to avoid, learned from real experience.
 ---
 
 ## Documentation
+
+### ASCII Art Diagrams in Architecture Docs
+
+**What:** Using ASCII box diagrams instead of Mermaid for architecture documentation
+**Why it fails:** ASCII art doesn't render nicely, is hard to update, and many tools can't interpret it. Mermaid renders in GitHub, VS Code, and most markdown viewers automatically.
+**Example:** Constellation ARCHITECTURE.md used ASCII boxes for system overview instead of Mermaid flowcharts
+**Instead:** Always use Mermaid syntax for all diagrams (flowchart, sequenceDiagram, erDiagram, stateDiagram-v2)
+**Source:** Constellation (2026-02)
 
 ### Skipping README for New Project
 
@@ -100,6 +120,18 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Instead:** Add at least one CI pipeline for lint/test/build
 **Source:** test-app (2026-01)
 
+### CI Without CD (Test Only, No Deploy)
+
+**What:** CI workflow only runs test/lint/build but has no deployment step
+**Why it fails:** App can't actually be deployed. "DevOps" incomplete. Manual deployment required every time, prone to errors and inconsistency.
+**Example:** Constellation had `.github/workflows/ci.yml` that ran pnpm test/lint/build but no Vercel/Netlify deployment workflow. `.env.example` mentioned `VERCEL_TOKEN` but it was never used.
+**Instead:**
+- DevOps agent should set up BOTH CI (test/lint/build) AND CD (deploy to Vercel/Netlify/etc.)
+- Add deployment workflow that triggers on main branch push
+- Include preview deployments for PRs
+- Quality gate should verify deployment workflow exists, not just CI
+**Source:** Constellation (2026-02)
+
 ### Missing Root .gitignore
 
 **What:** Subdirectories have their own .gitignore but root does not
@@ -123,6 +155,22 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Example:** test-app-6 has React + TanStack Query + @dnd-kit but no component tests
 **Instead:** Add frontend test step to orchestrator template; configure Vitest + Testing Library for client/
 **Source:** test-app-6 (2026-01)
+
+---
+
+## Scope and Requirements Anti-Patterns
+
+### Silently Dropping Requirements
+
+**What:** Orchestrator generates a build pipeline that omits major features from the PRD without explanation or approval
+**Why it fails:** Stakeholder expects complete delivery per PRD. Discovering missing features at the end wastes the entire pipeline run and erodes trust. The agent made a unilateral decision to reduce scope without consent.
+**Example:** Constellation PRD explicitly required React Native mobile app. Orchestrator generated web-only pipeline. Mobile app was never built. No justification provided, no flag raised to user.
+**Instead:**
+- Orchestrator MUST implement ALL features in PRD unless explicitly told to reduce scope
+- If orchestrator believes scope should be reduced, it MUST stop and ask for approval with justification
+- DoD checklist must verify: "All platforms/features in PRD have implementations"
+- Pipeline gate after orchestrator step should compare pipeline coverage to PRD scope
+**Source:** Constellation (2026-02)
 
 ---
 
@@ -151,6 +199,58 @@ Anti-patterns and approaches to avoid, learned from real experience.
 **Example:** Tester, backend impl, frontend impl all sequential when they could be parallel
 **Instead:** Use `PARALLEL_GROUP` for tester + backend + frontend, add build validation after merge
 **Source:** test-app-7 (2026-01)
+
+### Mock Data in Production Code
+
+**What:** Frontend implementation uses hardcoded mock data instead of connecting to real backend
+**Why it fails:** App looks complete but doesn't actually work. No real CRUD, no auth, no data persistence. Users can't use the app.
+**Example:** Constellation pages had `const mockTasks = [...]` instead of Supabase queries. Migrations existed, BFFs existed, but frontend never connected to them.
+**Instead:**
+- Create API client (`lib/supabase.ts`) as first frontend step
+- Use React Query with real endpoints
+- Wire up auth immediately
+- Mock data ONLY in test files, Storybook, or explicit demo modes
+- DoD must verify real data flow (create/read/update/delete works)
+**Source:** Constellation (2026-02)
+
+### No Data Layer Setup Step
+
+**What:** Pipeline goes directly from "backend complete" to "implement frontend UI" without explicit data layer setup
+**Why it fails:** Agents implement UI with local state and mock data because no hooks/providers exist. The connection between backend and frontend is assumed, not built.
+**Example:** Constellation had React Query installed but no QueryClientProvider in main.tsx, no data fetching hooks created, no auth context. Each page used `useState` with hardcoded arrays.
+**Instead:** Add explicit data layer step before frontend implementation:
+1. Generate database types (`supabase gen types typescript`)
+2. Set up data fetching library (QueryClientProvider)
+3. Create base data hooks (useTasks, useEvents, useMeals, etc.)
+4. Wire up auth context (useAuth, auth state management)
+5. Create API client with proper typing
+**Source:** Constellation (2026-02)
+
+### Database Types Not Generated
+
+**What:** Using Supabase without generating TypeScript types from the schema
+**Why it fails:** No autocomplete for table/column names, no type checking on inserts/updates, runtime errors instead of compile-time errors. Queries can reference non-existent columns.
+**Example:** Constellation frontend queries were untyped; `supabase.from('tasks').select('*')` returned `any`
+**Instead:** Generate types as part of initial setup and after any schema change:
+```bash
+supabase gen types typescript --project-id <id> > packages/shared-types/src/database.ts
+```
+Add to README and document in development workflow.
+**Source:** Constellation (2026-02)
+
+### React Query Installed But Not Configured
+
+**What:** Data fetching library (React Query, SWR, etc.) added to dependencies but provider never added to app
+**Why it fails:** Hooks like `useQuery` won't work without the provider context. Developers resort to `useState` + `useEffect` patterns or mock data.
+**Example:** Constellation had `@tanstack/react-query` in package.json but no `QueryClientProvider` in main.tsx
+**Instead:** When adding React Query, always add provider setup in same step:
+```tsx
+// main.tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+const queryClient = new QueryClient();
+// wrap app in <QueryClientProvider client={queryClient}>
+```
+**Source:** Constellation (2026-02)
 
 ---
 

@@ -31,6 +31,7 @@ Before writing tests, clarify:
 - **What are the outputs?** Expected results for each input class
 - **What can go wrong?** Error conditions, external failures
 - **What's critical?** Where does failure cause the most damage?
+- **What's the UX design?** For UI features, reference `docs/UX-DESIGN*.md` for user flows, states, and accessibility requirements
 
 ### 2. Identify Test Categories
 
@@ -190,6 +191,14 @@ For any input, consider:
 - [ ] Concurrent requests
 - [ ] Retry scenarios
 - [ ] Cancellation
+
+### UI/UX (when UX-DESIGN docs exist)
+- [ ] User flows match documented flows in UX design
+- [ ] All screens in screen inventory are reachable
+- [ ] Component states (loading, error, empty, success)
+- [ ] Responsive breakpoints behave as documented
+- [ ] Accessibility requirements (focus, labels, contrast)
+- [ ] Form validation matches design specs
 
 ## Output Format
 

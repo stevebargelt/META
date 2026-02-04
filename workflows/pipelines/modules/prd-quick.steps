@@ -1,0 +1,6 @@
+# PRD Quick Module
+# Automated PRD creation from task description
+# Prerequisites: Feature branch created, task description available
+
+# NUM | AGENT | CLI | GATE | PARALLEL_GROUP | TIMEOUT_MIN | PROMPT
+N | product-manager | - | auto | - | 30 | Create feature PRD as a SEPARATE file: docs/PRD-<feature-name>.md (do NOT modify the main docs/PRD.md). Follow META/prompts/prd-template.md structure. Update .meta/handoff.md with summary.

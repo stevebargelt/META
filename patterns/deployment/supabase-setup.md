@@ -2,7 +2,22 @@
 
 **What:** Repeatable setup steps for Supabase projects (local dev + hosted).
 **When to use:** Any project that uses Supabase for Auth/DB.
-**Source:** test-app-2 (2026-01)
+**Source:** test-app-2 (2026-01), updated 2026-02 for new API keys
+
+## API Key Format (2025+)
+
+> **Important:** Supabase now uses publishable/secret keys instead of legacy anon/service_role JWT keys. New projects only have the new format. See [API Keys Documentation](https://supabase.com/docs/guides/api/api-keys).
+
+| Old Key | New Key | Format |
+|---------|---------|--------|
+| `anon` / `public` | `publishable` | `sb_publishable_xxx` |
+| `service_role` | `secret` | `sb_secret_xxx` |
+
+**Key differences:**
+- New keys are opaque tokens, NOT JWTs
+- Cannot use in `Authorization: Bearer` header (use user JWT instead)
+- Edge Functions may need `--no-verify-jwt` flag
+- Supabase Client libraries work without code changes
 
 ## Prerequisites
 
@@ -29,7 +44,8 @@ supabase start
 
 ```bash
 cp .env.example .env
-# fill NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
+# fill SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY
+# (or VITE_SUPABASE_* / NEXT_PUBLIC_SUPABASE_* depending on framework)
 ```
 
 4) Apply migrations
@@ -60,10 +76,31 @@ supabase db push
 
 | Key | Where | Purpose |
 |-----|-------|---------|
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client | Public operations under RLS |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Admin/server operations |
+| `SUPABASE_PUBLISHABLE_KEY` | Client | Public operations under RLS |
+| `SUPABASE_SECRET_KEY` | Server only | Admin/server operations, bypasses RLS |
 
-Never expose the service role key to the client.
+Never expose the secret key to the client.
+
+## Environment Variable Naming
+
+Adjust prefix based on your framework:
+
+| Framework | Client Key | Server Key |
+|-----------|------------|------------|
+| Vite | `VITE_SUPABASE_PUBLISHABLE_KEY` | `SUPABASE_SECRET_KEY` |
+| Next.js | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `SUPABASE_SECRET_KEY` |
+| Expo | `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `SUPABASE_SECRET_KEY` |
+
+## Edge Functions
+
+If calling Edge Functions with publishable/secret keys (not user JWTs):
+
+```bash
+# Deploy with --no-verify-jwt if needed
+supabase functions deploy my-function --no-verify-jwt
+```
+
+Or extract the key from the `apikey` header in your function code.
 
 ## CI / Testing
 

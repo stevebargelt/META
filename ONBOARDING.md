@@ -24,6 +24,38 @@ Core capabilities:
 - **Two-stage quality gates**: DoD checklist (human judgment) + quality-gate.sh (machine verification)
 - **Handoff files**: .meta/handoff.md maintains state between steps/agents
 - **Auto-commit**: Each step commits with `meta: step N (agent) complete`
+- **Quick vs Detailed modes**: PRD and Architecture phases can run automated (Quick) or interactive (Detailed)
+
+## Interactive PRD & Architecture
+
+For features where requirements are unclear or you want to explore options:
+
+**Project Orchestrator** (`agents/project-orchestrator.md`) offers depth selection:
+
+| Phase | Quick Mode | Detailed Mode |
+|-------|-----------|---------------|
+| PRD | Automated from task description | Research + elicitation + review loop |
+| Architecture | Automated from PRD | Options exploration + trade-offs + review loop |
+
+**When to use Detailed mode:**
+- Requirements are fuzzy or need exploration
+- Entering unfamiliar problem space
+- Competitive research would help
+- Want to understand architectural trade-offs
+- Multiple valid approaches exist
+
+**How it works:**
+1. Start conversation with project-orchestrator agent
+2. Describe what you're building
+3. Choose Quick or Detailed for PRD and Architecture
+4. Detailed phases run interactively with review loops
+5. Orchestrator generates pipeline for remaining automated steps
+
+See:
+- `agents/project-orchestrator.md` - Full orchestrator documentation
+- `prompts/prd-detailed-questions.md` - PRD elicitation framework
+- `prompts/arch-detailed-questions.md` - Architecture elicitation framework
+- `workflows/pipelines/modules/` - Composable pipeline modules
 
 ## Pipeline Format
 
@@ -40,9 +72,10 @@ Core capabilities:
 1. `README.md` - Overview
 2. `agents/base.md` - Foundation for all agents
 3. `agents/orchestrator.md` - How pipelines are generated
-4. `workflows/pipelines/feature.pipeline` - Feature development flow with parallelism
-5. `learnings/what-works.md` - Proven patterns
-6. `learnings/what-doesnt.md` - Anti-patterns to avoid
+4. `agents/project-orchestrator.md` - Interactive PRD/Architecture with depth selection
+5. `workflows/pipelines/feature.pipeline` - Feature development flow with parallelism
+6. `learnings/what-works.md` - Proven patterns
+7. `learnings/what-doesnt.md` - Anti-patterns to avoid
 
 ## Commands
 
@@ -115,10 +148,12 @@ Check `learnings/` for retrospectives from test-app through test-app-7. These do
 
 ## Current State
 
-*Last updated: 2026-01-29*
+*Last updated: 2026-02-02*
 
 ### Recently Completed
 
+- **Interactive PRD & Architecture modes** - New project-orchestrator agent with Quick vs Detailed depth selection. Detailed mode includes competitive research, requirements elicitation, and review loops.
+- **Pipeline modules** - Composable step templates in `workflows/pipelines/modules/` for custom pipeline generation
 - **Gate wait time tracking** - Pipeline now reports execution time vs gate wait time separately
 - **Feature pipeline parallelism** - Steps 4-6 (tester, backend, frontend) now run in parallel
 - **Feature branch workflow** - Feature pipeline creates `feature/<name>` branch at start

@@ -180,3 +180,71 @@ workflow_inject_research() {
 
   echo "Injected product-researcher step at position $insert_before (--research enabled)"
 }
+
+# Detect waves of parallel groups that can run concurrently
+# A wave is a set of parallel groups that:
+# 1. Share the same prerequisites
+# 2. Don't depend on each other
+# 3. Are consecutive (adjacent groups with no serial steps between them)
+#
+# Returns: Lines in format "WAVE_N=group1:start-end group2:start-end ..."
+detect_waves() {
+  local waves=()
+  local current_wave_groups=()
+  local last_group_end=0
+
+  local idx=1
+  while [[ $idx -le $WF_STEP_COUNT ]]; do
+    local group="${WF_STEP_GROUP[$idx]}"
+
+    if [[ -n "$group" ]]; then
+      # Find group span
+      local group_start=$idx
+      local group_end=$idx
+      while [[ $group_end -le $WF_STEP_COUNT && "${WF_STEP_GROUP[$group_end]}" == "$group" ]]; do
+        group_end=$((group_end + 1))
+      done
+      group_end=$((group_end - 1))
+
+      # Check if there are any serial steps between last group and this group
+      local has_serial_step=false
+      if [[ $last_group_end -gt 0 ]]; then
+        local j
+        for ((j=last_group_end+1; j<group_start; j++)); do
+          if [[ -z "${WF_STEP_GROUP[$j]}" ]]; then
+            # Found a serial step between groups
+            has_serial_step=true
+            break
+          fi
+        done
+      fi
+
+      if [[ "$has_serial_step" == true || ${#current_wave_groups[@]} -eq 0 ]]; then
+        # Start new wave (serial step creates barrier or this is first group)
+        if [[ ${#current_wave_groups[@]} -gt 0 ]]; then
+          waves+=("${current_wave_groups[*]}")
+        fi
+        current_wave_groups=("$group:$group_start-$group_end")
+      else
+        # Join current wave (no serial steps between consecutive groups)
+        current_wave_groups+=("$group:$group_start-$group_end")
+      fi
+
+      last_group_end=$group_end
+      idx=$((group_end + 1))
+    else
+      # Serial step - doesn't break current wave yet, just marks position
+      idx=$((idx + 1))
+    fi
+  done
+
+  # Flush final wave
+  if [[ ${#current_wave_groups[@]} -gt 0 ]]; then
+    waves+=("${current_wave_groups[*]}")
+  fi
+
+  # Export for executor
+  for i in "${!waves[@]}"; do
+    echo "WAVE_$i=${waves[$i]}"
+  done
+}

@@ -1,0 +1,52 @@
+# PRD Detailed Module (Reference Only)
+# This module documents the interactive flow - it does NOT get copied into pipelines
+# The project-orchestrator runs this flow conversationally before pipeline generation
+
+# INTERACTIVE FLOW (runs before pipeline)
+# ========================================
+#
+# This is NOT a pipeline step. It's an interactive conversation facilitated by
+# the project-orchestrator agent using prompts/prd-detailed-questions.md.
+#
+# Flow:
+#
+# 1. COMPETITIVE RESEARCH (product-researcher agent, ~20-30 min)
+#    - Search for competitors in the product category
+#    - Analyze 3-5 alternatives
+#    - Create docs/COMPETITIVE-ANALYSIS.md
+#    - Report findings to conversation
+#
+# 2. REQUIREMENTS ELICITATION (project-orchestrator, ~30-45 min)
+#    - Ask questions from prompts/prd-detailed-questions.md
+#    - Categories: Problem Space, Target Users, Success Criteria, Constraints, Scope
+#    - Adapt questions based on answers and research findings
+#    - Capture decisions explicitly
+#
+# 3. DRAFT PRD (project-orchestrator, ~15 min)
+#    - Synthesize answers + research into PRD
+#    - Use prompts/prd-template.md structure
+#    - Include Competitive Context section
+#    - Present draft in conversation
+#
+# 4. REVIEW LOOP (project-orchestrator + human, variable)
+#    - Human provides feedback
+#    - Agent revises PRD
+#    - Repeat until human approves
+#    - Common revisions: scope adjustments, criteria refinement, metric changes
+#
+# 5. FINALIZE
+#    - Write approved PRD to docs/PRD-<feature-name>.md
+#    - Update .meta/handoff.md with summary
+#    - Proceed to Architecture phase (or pipeline)
+#
+# Artifacts Created:
+# - docs/COMPETITIVE-ANALYSIS.md (from research phase)
+# - docs/PRD-<feature-name>.md (final approved PRD)
+#
+# Time Estimate: 1-2 hours depending on complexity and review iterations
+#
+# When to Use:
+# - Requirements are unclear or need exploration
+# - Entering unfamiliar problem space
+# - Competitive landscape matters
+# - User wants to think through requirements interactively
