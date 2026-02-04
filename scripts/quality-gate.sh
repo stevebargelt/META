@@ -19,7 +19,12 @@ set -euo pipefail
 #  9. OpenAPI valid (redocly lint if docs/openapi.yaml exists)
 # 10. Observability (correlation ID references in server code)
 # 11. No mock data in production code (detects mockData patterns)
-# 12. Build succeeds (npm run build)
+# 12. CD workflow exists (deployment, not just CI)
+# 13. Client-side observability (Sentry + PostHog in frontend)
+# 14. Placeholder page detection ("Coming soon", etc.)
+# 15. Stub/TODO detection in production code
+# 16. DEFERRED.md check (flag for review if exists)
+# 17. Build succeeds (npm run build)
 
 usage() {
   echo "Usage: quality-gate.sh --project <path>"
@@ -414,7 +419,117 @@ else
   result skip "Mock data" "no source directories found"
 fi
 
-# 12. Build succeeds (if build script exists)
+# 12. CD workflow exists (deployment, not just CI)
+cd_workflow=""
+# Check for deployment workflows
+for pattern in .github/workflows/deploy*.yml .github/workflows/deploy*.yaml .github/workflows/cd*.yml .github/workflows/release*.yml; do
+  if ls $pattern 2>/dev/null | head -1 >/dev/null; then
+    cd_workflow=$(ls $pattern 2>/dev/null | head -1)
+    break
+  fi
+done
+# Also check for platform-specific auto-deploy configs
+if [[ -z "$cd_workflow" ]]; then
+  if [[ -f vercel.json ]]; then
+    cd_workflow="vercel.json (auto-deploy)"
+  elif [[ -f netlify.toml ]]; then
+    cd_workflow="netlify.toml (auto-deploy)"
+  elif [[ -f fly.toml ]]; then
+    cd_workflow="fly.toml (auto-deploy)"
+  fi
+fi
+
+if [[ -n "$cd_workflow" ]]; then
+  result pass "CD workflow" "$cd_workflow"
+else
+  result fail "CD workflow" "no deployment workflow (CI is not CD)"
+fi
+
+# 13. Client-side observability (Sentry + PostHog in frontend)
+web_pkg=""
+for pkg in apps/web/package.json client/package.json frontend/package.json package.json; do
+  if [[ -f "$pkg" ]]; then
+    # Check if this is a web/frontend package (has react or vue)
+    if grep -qE '"react"|"vue"|"@angular"' "$pkg" 2>/dev/null; then
+      web_pkg="$pkg"
+      break
+    fi
+  fi
+done
+
+if [[ -n "$web_pkg" ]]; then
+  sentry_ok=""
+  posthog_ok=""
+
+  if grep -qE '"@sentry/react"|"@sentry/browser"|"@sentry/vue"|"@sentry/angular"' "$web_pkg" 2>/dev/null; then
+    sentry_ok="yes"
+  fi
+  if grep -q '"posthog-js"' "$web_pkg" 2>/dev/null; then
+    posthog_ok="yes"
+  fi
+
+  if [[ "$sentry_ok" == "yes" && "$posthog_ok" == "yes" ]]; then
+    result pass "Client observability" "Sentry + PostHog in $web_pkg"
+  elif [[ "$sentry_ok" == "yes" ]]; then
+    result fail "Client observability" "Sentry found but PostHog missing in $web_pkg"
+  elif [[ "$posthog_ok" == "yes" ]]; then
+    result fail "Client observability" "PostHog found but Sentry missing in $web_pkg"
+  else
+    result fail "Client observability" "neither Sentry nor PostHog in $web_pkg"
+  fi
+else
+  result skip "Client observability" "no frontend package.json found"
+fi
+
+# 14. Placeholder page detection
+placeholder_dirs=""
+for d in apps/web/src client/src frontend/src src pages components; do
+  [[ -d "$d" ]] && placeholder_dirs="$placeholder_dirs $d"
+done
+
+if [[ -n "$placeholder_dirs" ]]; then
+  placeholder_files=$(grep -rl "Coming soon\|Placeholder\|Not yet implemented\|TODO: implement" $placeholder_dirs \
+    --include="*.tsx" --include="*.jsx" --include="*.vue" \
+    2>/dev/null | grep -v -E "\.test\.|\.spec\.|\.stories\." | wc -l | tr -d ' ')
+
+  if [[ "$placeholder_files" -gt 0 ]]; then
+    result fail "Placeholder pages" "$placeholder_files file(s) with placeholder content"
+  else
+    result pass "Placeholder pages" "no placeholder content found"
+  fi
+else
+  result skip "Placeholder pages" "no frontend source directories found"
+fi
+
+# 15. Stub/TODO detection in production code
+prod_dirs=""
+for d in apps/web/src apps/mobile/src client/src server/src src lib; do
+  [[ -d "$d" ]] && prod_dirs="$prod_dirs $d"
+done
+
+if [[ -n "$prod_dirs" ]]; then
+  stub_files=$(grep -rl 'throw.*not.*implement\|throw.*TODO\|// FIXME:.*critical\|# FIXME:.*critical' $prod_dirs \
+    --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+    2>/dev/null | grep -v -E "\.test\.|\.spec\.|__tests__|__mocks__" | wc -l | tr -d ' ')
+
+  if [[ "$stub_files" -gt 0 ]]; then
+    result fail "Stubs in production" "$stub_files file(s) with unfinished stubs"
+  else
+    result pass "Stubs in production" "no critical stubs found"
+  fi
+else
+  result skip "Stubs in production" "no production source directories found"
+fi
+
+# 16. DEFERRED.md check (flag for review if exists)
+if [[ -f docs/DEFERRED.md ]]; then
+  deferred_count=$(grep -cE "^##|^-" docs/DEFERRED.md 2>/dev/null || echo "0")
+  result pass "Deferred items" "docs/DEFERRED.md exists ($deferred_count items) — verify approved"
+else
+  result skip "Deferred items" "no docs/DEFERRED.md (none deferred)"
+fi
+
+# 17. Build succeeds (if build script exists)
 has_build_script() {
   local pkg="$1"
   grep -q '"build"[[:space:]]*:' "$pkg" 2>/dev/null

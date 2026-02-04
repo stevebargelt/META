@@ -334,6 +334,84 @@ When orchestrating, decide:
 - Don't leave `PARALLEL_GROUP` empty when tasks are independent
 - Don't skip quality gates to save time
 - Don't hand off work without clear task definition
+- **Don't silently reduce scope** — If PRD says "web + mobile", the pipeline MUST include both or explicitly document why not
+
+## Mandatory Phase Rules
+
+**CRITICAL:** When generating a pipeline, the following rules are **blocking constraints**, not suggestions. The pipeline MUST include these phases when conditions apply.
+
+### Rule 1: Scope Coverage
+
+```
+IF PRD specifies multiple platforms (web, mobile, desktop, CLI):
+  THEN pipeline MUST include implementation steps for EACH platform
+  OR orchestrator MUST stop and request explicit approval for deferrals
+```
+
+Do NOT silently drop platforms. If the PRD says "React web app and React Native mobile app", both must have implementation steps.
+
+### Rule 2: Contract Before Parallel
+
+```
+IF pipeline has parallel work (multiple steps with same PARALLEL_GROUP):
+  THEN a contract stub step MUST precede the parallel group
+  AND a build validation step MUST follow the parallel group
+```
+
+Use `META/prompts/contract-stub.md` for contracts. Build validation runs `npm run build && npm test`.
+
+### Rule 3: Data Layer Before Frontend
+
+```
+IF pipeline has backend implementation:
+  AND pipeline has frontend implementation:
+  THEN a DATA LAYER SETUP step MUST exist between them
+```
+
+Data layer setup includes:
+1. Generate database types (`supabase gen types typescript`)
+2. Set up QueryClientProvider in app entry point
+3. Create typed API client (`lib/supabase.ts` or `lib/api.ts`)
+4. Create auth hooks (`useAuth`, `useCurrentUser`)
+5. Create entity hooks for domain objects (`useTasks`, `useEvents`, etc.)
+
+Frontend steps MUST use these hooks with REAL data. Mock data is only allowed in tests.
+
+### Rule 4: Full-Stack Observability
+
+```
+IF pipeline has devops-engineer step:
+  THEN observability MUST be configured for BOTH backend AND frontend
+```
+
+Backend: Sentry error tracking, structured logging with correlation IDs
+Frontend: `@sentry/react` with ErrorBoundary, `posthog-js` for analytics
+
+### Rule 5: Frontend Tests Required
+
+```
+IF pipeline has frontend implementation:
+  THEN a tester step for frontend MUST exist
+```
+
+Configure Vitest + Testing Library. Test component interactions, data display, error states.
+
+### Rule 6: DoD and Quality Gate
+
+```
+ALL pipelines MUST include:
+  - Definition-of-Done checklist step with gate (use META/prompts/definition-of-done-checklist.md)
+  - Final quality gate step that runs META/scripts/quality-gate.sh
+```
+
+### Enforcement
+
+If any mandatory rule cannot be satisfied, the orchestrator MUST:
+1. Document which rule cannot be satisfied and why
+2. Stop and request explicit user approval
+3. NOT proceed with a non-compliant pipeline
+
+The scope verification gate (`META/scripts/scope-verification.sh`) will catch PRD/pipeline mismatches after pipeline generation. Better to catch issues during generation than at verification.
 
 ## Context Reset Handling
 
