@@ -544,6 +544,187 @@ run_step_serial() {
   done
 }
 
+# Execute a wave containing multiple concurrent parallel groups
+execute_wave_concurrent() {
+  local session="$1"
+  local project="$2"
+  local run_id="$3"
+  local wave_groups="$4"  # Space-separated "group:start-end" strings
+  local state_file="$5"
+  local default_cli="$6"
+  local unsafe_flag="$7"
+
+  echo ""
+  echo "═══════════════════════════════════════"
+  echo "🌊 Wave with multiple concurrent groups:"
+  echo "$wave_groups" | tr ' ' '\n' | sed 's/^/  - /' | sed 's/:/ (steps /' | sed 's/-/ to /' | sed 's/$/)/'
+  echo "═══════════════════════════════════════"
+
+  # Phase 1: Launch all groups in wave
+  local group_metadata=()
+  local group
+  for group in $wave_groups; do
+    IFS=':' read -r group_name group_range <<< "$group"
+    IFS='-' read -r group_start group_end <<< "$group_range"
+
+    echo ""
+    echo "🚀 Launching group: $group_name (steps $group_start-$group_end)"
+
+    # Track group state
+    state_set_group "$state_file" "$group_name" "running"
+
+    # Launch all steps in this group
+    local j
+    for ((j=group_start; j<=group_end; j++)); do
+      local step_status
+      step_status=$(state_get "$state_file" "step_${j}" 2>/dev/null || echo "pending")
+      if [[ "$step_status" != "done" && "$step_status" != "skipped" ]]; then
+        local agent="${WF_STEP_AGENT[$j]}"
+        local cli=$(select_cli "${WF_STEP_CLI[$j]}" "$default_cli")
+        local prompt="${WF_STEP_PROMPT[$j]}"
+        local handoff_file
+        handoff_file="$(handoff_step_file "$project" "$j")"
+
+        state_set "$state_file" "current_step" "$j"
+        state_set "$state_file" "step_${j}" "running"
+
+        step_launch "$session" "$project" "$run_id" "$j" "$agent" "$cli" "$prompt" "$handoff_file" "$unsafe_flag"
+      fi
+    done
+
+    # Track group metadata for wait phase
+    group_metadata+=("$group_name:$group_start-$group_end")
+  done
+
+  # Phase 2: Wait for all groups concurrently
+  echo ""
+  echo "⏳ Waiting for all groups to complete..."
+
+  local failed_groups=()
+  local completed_steps=()
+
+  for group in "${group_metadata[@]}"; do
+    IFS=':' read -r group_name group_range <<< "$group"
+    IFS='-' read -r group_start group_end <<< "$group_range"
+
+    echo "  Monitoring group: $group_name"
+
+    # Wait for all steps in this group
+    local group_failed=false
+    local j
+    for ((j=group_start; j<=group_end; j++)); do
+      local step_status
+      step_status=$(state_get "$state_file" "step_${j}" 2>/dev/null || echo "pending")
+      if [[ "$step_status" == "done" || "$step_status" == "skipped" ]]; then
+        completed_steps+=("$j")
+        continue
+      fi
+
+      local timeout_min="${WF_STEP_TIMEOUT[$j]}"
+      local exit_file="$project/.meta/steps/$run_id/step-${j}.exit"
+      local wait_result
+      wait_result=$(step_wait "$exit_file" "$((timeout_min * 60))")
+
+      if [[ "$wait_result" == "success" ]]; then
+        state_set "$state_file" "step_${j}" "done"
+        completed_steps+=("$j")
+        tmux_remove_worker_pane "$session" "$j"
+      else
+        state_set "$state_file" "step_${j}" "failed"
+        group_failed=true
+        echo "    ❌ Step $j failed: $wait_result"
+      fi
+    done
+
+    if [[ "$group_failed" == true ]]; then
+      failed_groups+=("$group_name")
+      state_set_group "$state_file" "$group_name" "failed"
+    else
+      state_set_group "$state_file" "$group_name" "done"
+      echo "  ✅ Group $group_name complete"
+    fi
+  done
+
+  # Phase 3: Handle failures
+  if [[ ${#failed_groups[@]} -gt 0 ]]; then
+    echo ""
+    echo "⚠️  Failed groups in wave: ${failed_groups[*]}"
+    echo "Other groups may have completed successfully."
+    echo "Resume will retry only failed groups."
+    return 1
+  fi
+
+  # Phase 4: Handle gate steps
+  echo ""
+  echo "🚪 Processing gates for completed steps..."
+  local step
+  for step in "${completed_steps[@]}"; do
+    if [[ "${WF_STEP_GATE[$step]}" == "gate" ]]; then
+      local gate_status
+      gate_status=$(state_get "$state_file" "gate_${step}" 2>/dev/null || echo "")
+      if [[ "$gate_status" != "done" ]]; then
+        local agent="${WF_STEP_AGENT[$step]}"
+        local cli_for_gate=$(select_cli "${WF_STEP_CLI[$step]}" "$default_cli")
+        local prompt_for_gate="${WF_STEP_PROMPT[$step]}"
+        local log_file="$project/.meta/steps/$run_id/step-${step}.log"
+        local pipeline
+        pipeline=$(state_get "$state_file" "pipeline_file" || echo "")
+
+        local decision
+        decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$step" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+        gate_accumulate_wait "$state_file"
+
+        case "$decision" in
+          approve)
+            state_set "$state_file" "gate_${step}" "done"
+            ;;
+          retry)
+            local handoff_file
+            handoff_file="$(handoff_step_file "$project" "$step")"
+            local timeout_min="${WF_STEP_TIMEOUT[$step]}"
+
+            if ! run_step_serial "$session" "$project" "$run_id" "$step" "$agent" "$cli_for_gate" "$prompt_for_gate" "$handoff_file" "$timeout_min" "$unsafe_flag" "$state_file"; then
+              return 1
+            fi
+            handoff_merge_step "$project" "$run_id" "$step" "$agent"
+            state_set "$state_file" "gate_${step}" "done"
+            ;;
+          skip)
+            state_set "$state_file" "step_${step}" "skipped"
+            state_set "$state_file" "gate_${step}" "done"
+            ;;
+          abort)
+            echo "Aborting pipeline."
+            return 1
+            ;;
+        esac
+      fi
+    fi
+  done
+
+  # Phase 5: Merge handoffs from all completed steps
+  echo ""
+  echo "📝 Merging handoffs from completed steps..."
+  for step in "${completed_steps[@]}"; do
+    local agent="${WF_STEP_AGENT[$step]}"
+    handoff_merge_step "$project" "$run_id" "$step" "$agent"
+  done
+
+  # Phase 6: Auto-commit after wave completion
+  if [[ "${META_AUTO_COMMIT:-1}" == "1" ]]; then
+    if command -v git >/dev/null 2>&1 && git -C "$project" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+      if [[ -n "$(git -C "$project" status --porcelain 2>/dev/null)" ]]; then
+        local wave_group_names
+        wave_group_names=$(echo "$wave_groups" | tr ' ' '\n' | cut -d: -f1 | tr '\n' ' ')
+        git -C "$project" add -A && git -C "$project" commit -m "meta: wave complete (${wave_group_names})" --no-verify 2>/dev/null || true
+      fi
+    fi
+  fi
+
+  echo "✅ Wave complete - all groups succeeded"
+  return 0
+}
+
 control_run() {
   local project=""
   local pipeline=""
@@ -650,6 +831,35 @@ control_run() {
   echo "Run ID: ${run_id}"
   echo ""
 
+  # Detect waves for parallel execution optimization
+  local -A wave_map  # Maps step index to wave info: "wave_num:group_count"
+  local waves_output
+  waves_output=$(detect_waves)
+
+  if [[ -n "$waves_output" ]]; then
+    local wave_num=0
+    while IFS= read -r wave_line; do
+      if [[ -z "$wave_line" ]]; then
+        continue
+      fi
+
+      local wave_groups
+      IFS='=' read -r _ wave_groups <<< "$wave_line"
+      local group_count
+      group_count=$(echo "$wave_groups" | wc -w)
+
+      # Mark first step of each group in this wave
+      local group
+      for group in $wave_groups; do
+        IFS=':' read -r group_name group_range <<< "$group"
+        IFS='-' read -r group_start group_end <<< "$group_range"
+        wave_map[$group_start]="${wave_num}:${group_count}:${wave_groups}"
+      done
+
+      wave_num=$((wave_num + 1))
+    done <<< "$waves_output"
+  fi
+
   local idx=1
   while [[ "$idx" -le "$WF_STEP_COUNT" ]]; do
     local status
@@ -731,6 +941,50 @@ control_run() {
     group="${WF_STEP_GROUP[$idx]}"
 
     if [[ -n "$group" ]]; then
+      # Check if this group is part of a multi-group wave
+      local wave_info="${wave_map[$idx]:-}"
+
+      if [[ -n "$wave_info" ]]; then
+        IFS=':' read -r wave_num group_count wave_groups <<< "$wave_info"
+
+        if [[ "$group_count" -gt 1 ]]; then
+          # Multi-group wave - use concurrent execution
+          if ! execute_wave_concurrent "$session" "$project" "$run_id" "$wave_groups" "$state_file" "$default_cli" "$unsafe_flag"; then
+            echo "Wave execution failed. Check logs and resume when ready."
+            return 1
+          fi
+
+          # Skip past all groups in this wave
+          local last_step_in_wave=0
+          local wg
+          for wg in $wave_groups; do
+            IFS=':' read -r _ wg_range <<< "$wg"
+            IFS='-' read -r _ wg_end <<< "$wg_range"
+            if [[ "$wg_end" -gt "$last_step_in_wave" ]]; then
+              last_step_in_wave=$wg_end
+            fi
+          done
+
+          idx=$((last_step_in_wave + 1))
+
+          # Check for pipeline switch after wave
+          local switch_result
+          if pipeline_switch "$project" "$run_id" "$state_file"; then
+            pipeline=$(state_get "$state_file" "pipeline_file" || true)
+            pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
+            idx=1
+          else
+            switch_result=$?
+            if [[ "$switch_result" -eq 2 ]]; then
+              return 1
+            fi
+          fi
+
+          continue
+        fi
+      fi
+
+      # Single-group wave or no wave info - use existing logic
       local group_start=$idx
       local group_end=$idx
       while [[ "$group_end" -le "$WF_STEP_COUNT" ]]; do

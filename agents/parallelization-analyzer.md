@@ -247,6 +247,48 @@ graph TB
 - **Parallelizable:** ✅ YES
 - **Reasoning:** Completely independent, no shared resources
 
+## Wave Plan
+
+The pipeline can be executed in waves for maximum parallelization:
+
+### Wave Analysis
+
+| Wave | Groups | Concurrency | Dependencies | Duration |
+|------|--------|-------------|--------------|----------|
+| 1 | backend | 1 group | Requires contract stub | ~40 min |
+| 2 | web-features, mobile-features | 2 groups (concurrent) | Both require data layer | ~40 min |
+
+**Total Pipeline Time:**
+- **With waves:** 80 minutes (concurrent execution)
+- **Without waves (sequential):** 120 minutes
+- **Savings:** 40 minutes (33% reduction)
+
+### Dependency Graph (Wave View)
+
+```mermaid
+graph TB
+    Contract[Contract Stub<br/>Step 3]
+    Backend[Backend Group<br/>Steps 4-5]
+    DataLayer[Data Layer<br/>Steps 7-9]
+    WebFeatures[Web Features Group<br/>Steps 10-16]
+    MobileFeatures[Mobile Features Group<br/>Steps 18-24]
+    Testing[Testing<br/>Step 26+]
+
+    Contract --> Backend
+    Backend --> DataLayer
+    DataLayer --> WebFeatures
+    DataLayer --> MobileFeatures
+    WebFeatures --> Testing
+    MobileFeatures --> Testing
+
+    style WebFeatures fill:#90EE90
+    style MobileFeatures fill:#90EE90
+```
+
+**Legend:**
+- Green boxes = Can run concurrently in Wave 2
+- Both depend on DataLayer but not on each other
+
 ## Parallelization Strategy
 
 ### Web App Features (Steps 8-11)
