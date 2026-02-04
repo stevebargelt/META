@@ -831,34 +831,8 @@ control_run() {
   echo "Run ID: ${run_id}"
   echo ""
 
-  # Detect waves for parallel execution optimization
-  local -A wave_map  # Maps step index to wave info: "wave_num:group_count"
-  local waves_output
-  waves_output=$(detect_waves)
-
-  if [[ -n "$waves_output" ]]; then
-    local wave_num=0
-    while IFS= read -r wave_line; do
-      if [[ -z "$wave_line" ]]; then
-        continue
-      fi
-
-      local wave_groups
-      IFS='=' read -r _ wave_groups <<< "$wave_line"
-      local group_count
-      group_count=$(echo "$wave_groups" | wc -w)
-
-      # Mark first step of each group in this wave
-      local group
-      for group in $wave_groups; do
-        IFS=':' read -r group_name group_range <<< "$group"
-        IFS='-' read -r group_start group_end <<< "$group_range"
-        wave_map[$group_start]="${wave_num}:${group_count}:${wave_groups}"
-      done
-
-      wave_num=$((wave_num + 1))
-    done <<< "$waves_output"
-  fi
+  # Detect waves for parallel execution optimization (stored globally for lookup)
+  WAVES_OUTPUT=$(detect_waves)
 
   local idx=1
   while [[ "$idx" -le "$WF_STEP_COUNT" ]]; do
@@ -942,46 +916,74 @@ control_run() {
 
     if [[ -n "$group" ]]; then
       # Check if this group is part of a multi-group wave
-      local wave_info="${wave_map[$idx]:-}"
+      local wave_groups=""
+      local found_multi_group_wave=false
 
-      if [[ -n "$wave_info" ]]; then
-        IFS=':' read -r wave_num group_count wave_groups <<< "$wave_info"
-
-        if [[ "$group_count" -gt 1 ]]; then
-          # Multi-group wave - use concurrent execution
-          if ! execute_wave_concurrent "$session" "$project" "$run_id" "$wave_groups" "$state_file" "$default_cli" "$unsafe_flag"; then
-            echo "Wave execution failed. Check logs and resume when ready."
-            return 1
+      if [[ -n "$WAVES_OUTPUT" ]]; then
+        while IFS= read -r wave_line; do
+          if [[ -z "$wave_line" ]]; then
+            continue
           fi
 
-          # Skip past all groups in this wave
-          local last_step_in_wave=0
+          local wg_list
+          IFS='=' read -r _ wg_list <<< "$wave_line"
+
+          # Check if current group is in this wave
           local wg
-          for wg in $wave_groups; do
-            IFS=':' read -r _ wg_range <<< "$wg"
-            IFS='-' read -r _ wg_end <<< "$wg_range"
-            if [[ "$wg_end" -gt "$last_step_in_wave" ]]; then
-              last_step_in_wave=$wg_end
+          for wg in $wg_list; do
+            IFS=':' read -r wg_name wg_range <<< "$wg"
+            IFS='-' read -r wg_start wg_end <<< "$wg_range"
+
+            if [[ "$idx" -ge "$wg_start" && "$idx" -le "$wg_end" && "$group" == "$wg_name" ]]; then
+              # Found the wave containing this group
+              local group_count
+              group_count=$(echo "$wg_list" | wc -w)
+
+              if [[ "$group_count" -gt 1 ]]; then
+                # This is a multi-group wave
+                wave_groups="$wg_list"
+                found_multi_group_wave=true
+              fi
+              break 2
             fi
           done
+        done <<< "$WAVES_OUTPUT"
+      fi
 
-          idx=$((last_step_in_wave + 1))
-
-          # Check for pipeline switch after wave
-          local switch_result
-          if pipeline_switch "$project" "$run_id" "$state_file"; then
-            pipeline=$(state_get "$state_file" "pipeline_file" || true)
-            pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
-            idx=1
-          else
-            switch_result=$?
-            if [[ "$switch_result" -eq 2 ]]; then
-              return 1
-            fi
-          fi
-
-          continue
+      if [[ "$found_multi_group_wave" == true ]]; then
+        # Multi-group wave - use concurrent execution
+        if ! execute_wave_concurrent "$session" "$project" "$run_id" "$wave_groups" "$state_file" "$default_cli" "$unsafe_flag"; then
+          echo "Wave execution failed. Check logs and resume when ready."
+          return 1
         fi
+
+        # Skip past all groups in this wave
+        local last_step_in_wave=0
+        local wg
+        for wg in $wave_groups; do
+          IFS=':' read -r _ wg_range <<< "$wg"
+          IFS='-' read -r _ wg_end <<< "$wg_range"
+          if [[ "$wg_end" -gt "$last_step_in_wave" ]]; then
+            last_step_in_wave=$wg_end
+          fi
+        done
+
+        idx=$((last_step_in_wave + 1))
+
+        # Check for pipeline switch after wave
+        local switch_result
+        if pipeline_switch "$project" "$run_id" "$state_file"; then
+          pipeline=$(state_get "$state_file" "pipeline_file" || true)
+          pipeline_name="${WF_NAME:-$(basename "$pipeline" .pipeline)}"
+          idx=1
+        else
+          switch_result=$?
+          if [[ "$switch_result" -eq 2 ]]; then
+            return 1
+          fi
+        fi
+
+        continue
       fi
 
       # Single-group wave or no wave info - use existing logic
