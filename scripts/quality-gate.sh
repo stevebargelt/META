@@ -306,9 +306,10 @@ for subdir in server client backend frontend; do
 done
 
 if [[ -n "$test_dirs" ]]; then
-  # Look for .only( in test files
-  if grep -rl "\.only(" $test_dirs --include="*.test.*" --include="*.spec.*" 2>/dev/null | head -1 >/dev/null; then
-    only_files=$(grep -rl "\.only(" $test_dirs --include="*.test.*" --include="*.spec.*" 2>/dev/null | wc -l | tr -d ' ')
+  # Look for .only( in test files (disable pipefail temporarily)
+  only_files=$(set +o pipefail; grep -rl "\.only(" $test_dirs --include="*.test.*" --include="*.spec.*" 2>/dev/null | wc -l | tr -d ' ')
+  only_files=${only_files:-0}
+  if [[ "$only_files" -gt 0 ]]; then
     result fail "Focused tests" ".only() found in $only_files file(s)"
   else
     result pass "Focused tests" "no .only() calls found"
@@ -406,9 +407,11 @@ done
 
 if [[ -n "$src_dirs" ]]; then
   # Look for mock data patterns, excluding test files, stories, and mock directories
-  mock_files=$(grep -rl "mockData\|mockTasks\|mockEvents\|mockMeals\|mockRecipes\|mockUsers\|const mock" $src_dirs \
+  # Disable pipefail temporarily to handle grep returning 1 when nothing found
+  mock_files=$(set +o pipefail; grep -rl "mockData\|mockTasks\|mockEvents\|mockMeals\|mockRecipes\|mockUsers\|const mock" $src_dirs \
     --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
     2>/dev/null | grep -v -E "\.test\.|\.spec\.|\.stories\.|__tests__|__mocks__|\.mock\." | wc -l | tr -d ' ')
+  mock_files=${mock_files:-0}
 
   if [[ "$mock_files" -gt 0 ]]; then
     result fail "Mock data" "found mock data patterns in $mock_files production file(s)"
@@ -488,9 +491,11 @@ for d in apps/web/src client/src frontend/src src pages components; do
 done
 
 if [[ -n "$placeholder_dirs" ]]; then
-  placeholder_files=$(grep -rl "Coming soon\|Placeholder\|Not yet implemented\|TODO: implement" $placeholder_dirs \
+  # Disable pipefail temporarily to handle grep returning 1 when nothing found
+  placeholder_files=$(set +o pipefail; grep -rl "Coming soon\|Placeholder\|Not yet implemented\|TODO: implement" $placeholder_dirs \
     --include="*.tsx" --include="*.jsx" --include="*.vue" \
     2>/dev/null | grep -v -E "\.test\.|\.spec\.|\.stories\." | wc -l | tr -d ' ')
+  placeholder_files=${placeholder_files:-0}
 
   if [[ "$placeholder_files" -gt 0 ]]; then
     result fail "Placeholder pages" "$placeholder_files file(s) with placeholder content"
@@ -508,9 +513,11 @@ for d in apps/web/src apps/mobile/src client/src server/src src lib; do
 done
 
 if [[ -n "$prod_dirs" ]]; then
-  stub_files=$(grep -rl 'throw.*not.*implement\|throw.*TODO\|// FIXME:.*critical\|# FIXME:.*critical' $prod_dirs \
+  # Disable pipefail temporarily to handle grep returning 1 when nothing found
+  stub_files=$(set +o pipefail; grep -rl 'throw.*not.*implement\|throw.*TODO\|// FIXME:.*critical\|# FIXME:.*critical' $prod_dirs \
     --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
     2>/dev/null | grep -v -E "\.test\.|\.spec\.|__tests__|__mocks__" | wc -l | tr -d ' ')
+  stub_files=${stub_files:-0}
 
   if [[ "$stub_files" -gt 0 ]]; then
     result fail "Stubs in production" "$stub_files file(s) with unfinished stubs"

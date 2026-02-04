@@ -185,8 +185,11 @@ fi
 echo ""
 echo "Checking Must-Have features..."
 
-# Read features into array
-mapfile -t must_haves < <(extract_must_haves)
+# Read features into array (bash 3 compatible)
+must_haves=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && must_haves+=("$line")
+done < <(extract_must_haves)
 
 if [[ ${#must_haves[@]} -eq 0 ]]; then
   echo "  ⚠ No Must-Have features detected (check PRD format)"

@@ -32,6 +32,29 @@ Confirm all quality gates pass before marking a pipeline complete.
 - [ ] **CRUD operations work** — Can create, read, update, delete at least one entity type
 - [ ] **Environment variables used** — No hardcoded URLs or keys in source code
 
+### E2E Smoke Test (CRITICAL)
+Before marking complete, manually verify the app actually works end-to-end:
+
+1. [ ] **Create** — Create a new [primary entity] through the UI
+2. [ ] **Read** — Verify it appears in the list/view
+3. [ ] **Update** — Modify the entity through the UI
+4. [ ] **Persist** — Refresh the page, verify changes persisted
+5. [ ] **Delete** — Delete the entity through the UI
+6. [ ] **Confirm** — Verify it's removed from the list
+
+**Document results in `.meta/handoff.md`:**
+```
+## E2E Smoke Test Results
+- Entity tested: [e.g., Task, Recipe, Event]
+- Create: [pass/fail] - Created "[entity name]" at [timestamp]
+- Read: [pass/fail] - Appeared in list
+- Update: [pass/fail] - Changed [field] to [value]
+- Persist: [pass/fail] - Data survived page refresh
+- Delete: [pass/fail] - Entity removed
+```
+
+**Why this matters:** Mock data passes visual review. This test proves the frontend actually connects to the backend.
+
 ### Recommended
 - [ ] `.env.example` provided for required env vars
 - [ ] Architecture or decisions documented (if non-trivial)

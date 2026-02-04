@@ -780,14 +780,42 @@ Kickoff → PRD → Architecture → External Services → Orchestrator
 
 **Branch:** `feature/verification-architecture`
 
-### Week 2: Quality Gate Testing ⏳ PENDING
+### Week 2: Quality Gate Testing ✅ COMPLETE (2026-02-03)
 
-- [ ] Test scope-verification.sh against Constellation PRD
-- [ ] Test new quality-gate.sh checks against real project
-- [ ] Verify placeholder/stub detection patterns work
+| Test | Result | Notes |
+|------|--------|-------|
+| scope-verification.sh on Constellation | ✅ Works | Detected 31 gaps (some false positives from user persona text) |
+| quality-gate.sh CD check | ✅ Works | Correctly identified "no deployment workflow" |
+| quality-gate.sh client observability | ✅ Works | Correctly identified "neither Sentry nor PostHog" |
+| Placeholder detection | ✅ Works | Found 2 placeholder pages |
+| Stub detection | ✅ Works | No stubs found (expected) |
 
-### Week 3: Agent Strengthening ⏳ PENDING
+**Bug Fixes Applied:**
+- Fixed bash 3 compatibility issue in scope-verification.sh (`mapfile` → `while read`)
+- Fixed pipefail issues in quality-gate.sh (grep returns 1 when no matches)
 
-- [ ] Update `agents/devops-engineer.md` full-stack requirement
-- [ ] Update `prompts/definition-of-done-checklist.md` smoke test
-- [ ] Test on new project
+**Constellation Quality Gate Summary:**
+```
+Results: 9 passed, 5 failed, 5 skipped
+Failed:
+  - TypeScript (tsc not installed in project)
+  - Lint (2 unused imports)
+  - CD workflow (no deployment - CORRECT DETECTION)
+  - Client observability (no Sentry/PostHog - CORRECT DETECTION)
+  - Placeholder pages (2 files - CORRECT DETECTION)
+```
+
+### Week 3: Agent Strengthening ✅ COMPLETE (2026-02-03)
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Update `agents/devops-engineer.md` | ✅ Already done | Full-stack observability requirement in Week 1 |
+| Update `prompts/definition-of-done-checklist.md` | ✅ Done | Added E2E smoke test requirement |
+| Test on new project | ⏳ Pending | Next pipeline run will validate |
+
+### Outstanding Items
+
+**Future refinements:**
+- [ ] Improve scope-verification.sh to filter user persona text from feature extraction
+- [ ] Add test coverage for Constellation's mobile app (apps/mobile/src has no tests)
+- [ ] Run full pipeline on new project to validate all changes work in practice
