@@ -99,6 +99,41 @@ erDiagram
 - Cost: [budget/limits]
 - Data retention: [policy]
 
+## Folder Structure
+
+**Default to feature-first (vertical slices)** unless there's a strong reason for layer-first.
+
+Reference: `META/patterns/project-structures/feature-first.md`
+
+**Feature-first structure (preferred):**
+```
+src/
+├── app/              # Bootstrap, routing, providers
+├── features/
+│   ├── calendar/     # Each feature owns its UI, state, API, tests
+│   ├── tasks/
+│   └── profile/
+└── shared/           # Minimal - only truly cross-feature code
+```
+
+**NOT this (layer-first):**
+```
+src/
+├── components/       # ❌ Avoid global component folder
+├── services/         # ❌ Avoid global services folder
+├── hooks/            # ❌ Avoid global hooks folder
+└── models/           # ❌ Avoid global models folder
+```
+
+**Why feature-first:**
+- **PRIMARY: Enables parallel development** - 4 features = 4x speedup when built simultaneously
+- Clear ownership boundaries - each feature owns its UI, state, API, tests
+- No merge conflicts - features don't share files
+- Better encapsulation - features are self-contained
+- Simpler to delete/refactor - just remove the feature folder
+
+**CRITICAL:** If you design a feature-first architecture but the orchestrator doesn't parallelize features, you've gained nothing. Feature-first exists FOR parallelization - make this explicit in your architecture docs.
+
 ## Threats & Risks
 - [Abuse case or failure mode] — [mitigation]
 - [Abuse case or failure mode] — [mitigation]

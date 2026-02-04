@@ -79,6 +79,26 @@ Integration tests can live in:
 tests/integration/
 ```
 
+## Parallel Development (CRITICAL)
+
+**The PRIMARY reason for feature-first structure is parallel development.**
+
+When features are self-contained:
+- Multiple agents/teams can work simultaneously
+- No file conflicts or merge hell
+- Linear time reduction: 4 features = 4x speedup
+
+**Pipeline Pattern:**
+```
+8 | base | - | auto | features | 30 | Implement features/calendar
+9 | base | - | auto | features | 30 | Implement features/tasks
+10 | base | - | auto | features | 30 | Implement features/meals
+11 | base | - | auto | features | 30 | Implement features/recipes
+```
+All run in parallel with group "features" → completes in 30 minutes instead of 120 minutes.
+
+**If you're not parallelizing features, you're wasting 75% of your time.**
+
 ## When to Break the Rule
 
 - Domain libraries that are truly shared across many features
