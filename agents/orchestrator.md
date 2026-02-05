@@ -278,6 +278,24 @@ Use `prompts/contract-stub.md` for these contracts.
 validation | base | auto | - | 5 | Run `npm run build && npm test` at workspace root. Report failures in .meta/handoff.md. If build fails, list specific errors for next agent to fix.
 ```
 
+**Additional requirement:** Each parallel group must run its **own verification** before moving on. This is not just a global build step.
+
+**Group verification rule:**
+1. After each parallel group, add a **group-specific verification step** (e.g., backend tests, frontend tests).
+2. The verification step must **fix failures and re-run** until green.
+3. Do not proceed to the next phase until group verification passes.
+
+Example:
+```
+# Parallel group (backend features)
+4 | base | auto | backend | API feature A
+5 | base | auto | backend | API feature B
+# Group verification (backend only)
+6 | base | auto | - | Backend verification: run backend tests; fix failures; re-run until green.
+# Continue to next phase
+7 | base | auto | - | Build validation (integration)
+```
+
 Why this matters:
 - Individual parallel steps may pass but fail to compose
 - Missing root package.json, type mismatches, config errors surface here
@@ -339,7 +357,7 @@ Parallel streams require clean seams. When architecture is unclear, hand off to 
 Insert reviews at these points:
 
 1. **After design** — Architect output reviewed before implementation
-2. **After parallel merge** — Build validation (`npm run build && npm test`) before next phase
+2. **After parallel merge** — Group verification (tests + fixes) AND build validation (`npm run build && npm test`) before next phase
 3. **After implementation** — Code reviewed before merge
 4. **After docs** — Documentation reviewed for accuracy
 5. **Before deployment** — Final check via `META/scripts/quality-gate.sh`

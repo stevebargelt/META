@@ -44,7 +44,7 @@ Project path: ~/code/my-project
 cd ~/code
 mkdir my-project && cd my-project
 git init
-cp ../META/prompts/project-template.md AGENTS.md
+cp ../META/NO-AGENTS.md AGENTS.md
 ln -s AGENTS.md CLAUDE.md
 mkdir -p docs
 cp ../META/prompts/prd-template.md docs/PRD.md

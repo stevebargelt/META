@@ -6,4 +6,5 @@
 N | tester | - | auto | dev | 30 | Create test plan (docs/TEST-PLAN-<feature>.md) and skeleton tests. Update .meta/handoff.md with test plan and files created.
 N+1 | base | - | auto | dev | 45 | Implement feature backend: API endpoints, services, repositories per architecture. Make backend tests pass. Update .meta/handoff.md with changes.
 N+2 | base | - | auto | dev | 45 | Implement feature frontend: UI components, hooks, pages per architecture. Make frontend tests pass. Update .meta/handoff.md with changes.
-N+3 | base | - | auto | - | 10 | Build validation: Run `npm run build` and `npm test` at workspace root (or in each package for monorepos). Report any failures in .meta/handoff.md with specific errors. Fix any integration issues from parallel merge.
+N+3 | base | - | auto | - | 15 | Group verification: run backend + frontend tests for this group. Fix failures and re-run until green. Summarize fixes in .meta/handoff.md.
+N+4 | base | - | auto | - | 10 | Build validation: Run `npm run build` and `npm test` at workspace root (or in each package for monorepos). Report any failures in .meta/handoff.md with specific errors. Fix any integration issues from parallel merge.

@@ -232,6 +232,7 @@ gate_message() {
   local agent="$5"
   local cli="$6"
   local prompt="$7"
+  local session="${8:-}"
 
   local -a lines
   lines+=("QUALITY GATE after step ${step_num} (${agent})")
@@ -309,6 +310,19 @@ gate_message() {
     while IFS= read -r line; do
       lines+=("${line}")
     done <<<"$excerpt"
+  fi
+
+  if [[ "${META_GATE_TMUX_SNAPSHOT:-}" == "1" && -n "$session" ]]; then
+    local snapshot_lines="${META_GATE_TMUX_SNAPSHOT_LINES:-6}"
+    local snapshot_panes="${META_GATE_TMUX_SNAPSHOT_PANES:-4}"
+    local snapshot
+    snapshot=$("${META_DIR}/scripts/meta-lib/tmux-snapshot.sh" "$session" "$snapshot_lines" "$snapshot_panes" 2>/dev/null || true)
+    if [[ -n "$snapshot" ]]; then
+      lines+=("Tmux snapshot:")
+      while IFS= read -r line; do
+        lines+=("  ${line}")
+      done <<<"$snapshot"
+    fi
   fi
 
   local review_hint="Approve after reviewing: ${handoff_main}"
@@ -435,7 +449,9 @@ step_launch() {
   # Creates a new pane in the bottom area for this step
   echo "Step ${step_num} (${agent}). Opening in worker pane..."
   local pane_title="Step ${step_num}: ${agent}"
-  tmux_create_worker_pane "$session" "$step_num" "bash \"$AGENT_RUN_FILE\"" "$pane_title"
+  local group
+  group="${WF_STEP_GROUP[$step_num]}"
+  tmux_create_worker_pane "$session" "$step_num" "bash \"$AGENT_RUN_FILE\"" "$pane_title" "$group"
 }
 
 run_step_serial() {
@@ -671,7 +687,7 @@ execute_wave_concurrent() {
         pipeline=$(state_get "$state_file" "pipeline_file" || echo "")
 
         local decision
-        decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$step" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+        decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$step" "$agent" "$cli_for_gate" "$prompt_for_gate" "$session")" "$log_file")
         gate_accumulate_wait "$state_file"
 
         case "$decision" in
@@ -874,7 +890,7 @@ control_run() {
           prompt_for_gate="${WF_STEP_PROMPT[$idx]}"
           local log_file="$project/.meta/steps/$run_id/step-${idx}.log"
           local decision
-          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate" "$session")" "$log_file")
           gate_accumulate_wait "$state_file"
 
           case "$decision" in
@@ -1147,7 +1163,7 @@ control_run() {
           prompt_for_gate="${WF_STEP_PROMPT[$gate_step]}"
           local log_file="$project/.meta/steps/$run_id/step-${gate_step}.log"
           local decision
-          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$gate_step" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+          decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$gate_step" "$agent" "$cli_for_gate" "$prompt_for_gate" "$session")" "$log_file")
           gate_accumulate_wait "$state_file"
 
           case "$decision" in
@@ -1224,7 +1240,7 @@ control_run() {
       prompt_for_gate="${WF_STEP_PROMPT[$idx]}"
       local log_file="$project/.meta/steps/$run_id/step-${idx}.log"
       local decision
-      decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate")" "$log_file")
+      decision=$(gate_prompt "$(gate_message "$project" "$run_id" "$pipeline" "$idx" "$agent" "$cli_for_gate" "$prompt_for_gate" "$session")" "$log_file")
       gate_accumulate_wait "$state_file"
 
       case "$decision" in

@@ -55,6 +55,23 @@ Before marking complete, manually verify the app actually works end-to-end:
 
 **Why this matters:** Mock data passes visual review. This test proves the frontend actually connects to the backend.
 
+### User Journey Validation (CRITICAL)
+Verify that a new user can complete the primary flow without manual intervention.
+
+**Authentication Flow**
+- [ ] Unauthenticated user sees a sign-in UI (form or OAuth button)
+- [ ] User can sign in and reach the main app
+- [ ] Sign-out works and returns user to sign-in state
+
+**Primary Feature Flow**
+- [ ] User can reach the primary feature from navigation
+- [ ] User can complete the primary action end-to-end (not just view a page)
+- [ ] Errors are shown to the user (not only in console/logs)
+
+**Mobile (if applicable)**
+- [ ] Mobile app launches without errors
+- [ ] README documents how to run the mobile app
+
 ### Recommended
 - [ ] `.env.example` provided for required env vars
 - [ ] Architecture or decisions documented (if non-trivial)

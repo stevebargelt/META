@@ -207,7 +207,7 @@ export const supabase = createClient<Database>(url, key);
 
 **What:** Write README first for new projects
 **Why it works:** Clarifies what you're building, API design emerges naturally
-**Template:** See `prompts/project-template.md`
+**Template:** See `NO-AGENTS.md`
 
 ### Decision Records for Architecture
 

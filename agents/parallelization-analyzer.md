@@ -146,6 +146,7 @@ Read `.meta/next.pipeline` from orchestrator and optimize:
 **Key optimizations:**
 - Same `PARALLEL_GROUP` for independent features → they run simultaneously
 - Divide timeout by number of features (120 min / 4 features = 30 min each)
+- Add **group verification step** AFTER each parallel group (run group-specific tests; fix failures; re-run until green)
 - Add build validation step AFTER parallel group to catch integration issues
 - Keep step numbers sequential (don't skip numbers)
 - Preserve any gates or special flags from original
@@ -154,7 +155,8 @@ Read `.meta/next.pipeline` from orchestrator and optimize:
 ```
 8  | base | - | auto | web-features | 30 | Implement features/recipes (independent, no dependencies)
 9  | base | - | auto | web-features | 30 | Implement features/meals (has nullable FK to recipes, validation will catch issues)
-10 | base | - | auto | - | 10 | Build validation: verify meals.favorite_recipe_id references valid recipes
+10 | base | - | auto | - | 15 | Web verification: run web tests; fix failures; re-run until green.
+11 | base | - | auto | - | 10 | Build validation: verify meals.favorite_recipe_id references valid recipes
 ```
 
 **For features with hard dependencies:**

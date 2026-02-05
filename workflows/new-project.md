@@ -59,7 +59,7 @@ git commit -m "Initial commit"
 Copy the template:
 
 ```bash
-cp ../META/prompts/project-template.md AGENTS.md
+cp ../META/NO-AGENTS.md AGENTS.md
 ln -s AGENTS.md CLAUDE.md
 ```
 
@@ -373,7 +373,7 @@ When you learn something useful, update META immediately. Don't wait until proje
 # Start new project
 cd ~/code && mkdir project && cd project
 git init
-cp ../META/prompts/project-template.md AGENTS.md
+cp ../META/NO-AGENTS.md AGENTS.md
 ln -s AGENTS.md CLAUDE.md
 # Edit AGENTS.md
 # Edit AGENTS.md with project details

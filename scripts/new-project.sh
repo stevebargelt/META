@@ -135,13 +135,18 @@ mkdir -p "${PROJECT_DIR}/config"
 mkdir -p "${PROJECT_DIR}/.meta"
 
 if [[ ! -f "${PROJECT_DIR}/${AGENT_FILE}" ]]; then
-  cat > "${PROJECT_DIR}/${AGENT_FILE}" <<'EOF'
+  AGENT_TEMPLATE="${SCRIPT_DIR}/../NO-AGENTS.md"
+  if [[ -f "$AGENT_TEMPLATE" ]]; then
+    cp "$AGENT_TEMPLATE" "${PROJECT_DIR}/${AGENT_FILE}"
+  else
+    cat > "${PROJECT_DIR}/${AGENT_FILE}" <<'EOF'
 # Project Name
 
 Inherits: ../META/agents/base.md
 
 [Filled by kickoff]
 EOF
+  fi
 fi
 
 README_FILE="${PROJECT_DIR}/README.md"

@@ -484,6 +484,45 @@ else
   result skip "Client observability" "no frontend package.json found"
 fi
 
+# 13b. Client-side observability initialization (Sentry.init, posthog.init, ErrorBoundary)
+frontend_dirs=""
+for d in apps/web/src client/src frontend/src src app; do
+  [[ -d "$d" ]] && frontend_dirs="$frontend_dirs $d"
+done
+
+if [[ -n "$web_pkg" && -n "$frontend_dirs" ]]; then
+  if [[ "$sentry_ok" == "yes" && "$posthog_ok" == "yes" ]]; then
+    # Disable pipefail temporarily to handle grep returning 1 when nothing found
+    sentry_init_files=$(set +o pipefail; grep -rl "Sentry\\.init" $frontend_dirs \
+      --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+      2>/dev/null | wc -l | tr -d ' ')
+    posthog_init_files=$(set +o pipefail; grep -rl "posthog\\.init" $frontend_dirs \
+      --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+      2>/dev/null | wc -l | tr -d ' ')
+    error_boundary_files=$(set +o pipefail; grep -rlE "ErrorBoundary|Sentry\\.ErrorBoundary|Sentry\\.wrap" $frontend_dirs \
+      --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" \
+      2>/dev/null | wc -l | tr -d ' ')
+
+    sentry_init_files=${sentry_init_files:-0}
+    posthog_init_files=${posthog_init_files:-0}
+    error_boundary_files=${error_boundary_files:-0}
+
+    if [[ "$sentry_init_files" -gt 0 && "$posthog_init_files" -gt 0 && "$error_boundary_files" -gt 0 ]]; then
+      result pass "Client observability init" "Sentry.init + posthog.init + ErrorBoundary found"
+    else
+      detail="missing:"
+      [[ "$sentry_init_files" -eq 0 ]] && detail="$detail Sentry.init"
+      [[ "$posthog_init_files" -eq 0 ]] && detail="$detail posthog.init"
+      [[ "$error_boundary_files" -eq 0 ]] && detail="$detail ErrorBoundary"
+      result fail "Client observability init" "$detail"
+    fi
+  else
+    result skip "Client observability init" "client observability deps missing"
+  fi
+else
+  result skip "Client observability init" "no frontend source directories found"
+fi
+
 # 14. Placeholder page detection
 placeholder_dirs=""
 for d in apps/web/src client/src frontend/src src pages components; do

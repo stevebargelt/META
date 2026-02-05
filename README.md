@@ -60,7 +60,7 @@ META/
 │   ├── debugging.md
 │   └── project-template.md
 │
-├── AGENTS.md                    # Model-agnostic entrypoint
+├── NO-AGENTS.md                 # Template for project AGENTS.md
 ├── CLAUDE.md                    # Legacy redirect to agents/base.md
 └── README.md                    # This file
 ```
@@ -75,7 +75,7 @@ mkdir my-project && cd my-project
 git init
 
 # Copy project template
-cp ../META/prompts/project-template.md AGENTS.md
+cp ../META/NO-AGENTS.md AGENTS.md
 ln -s AGENTS.md CLAUDE.md
 
 # Edit AGENTS.md with:
@@ -257,7 +257,7 @@ See `workflows/new-project.md` for full guide.
 
 **Quick version:**
 1. Create project directory
-2. Copy `prompts/project-template.md` to project `AGENTS.md` and symlink `CLAUDE.md` → `AGENTS.md`
+2. Copy `NO-AGENTS.md` to project `AGENTS.md` and symlink `CLAUDE.md` → `AGENTS.md`
 3. Fill in project details, inherit from `agents/base.md`
 4. Start building
 
@@ -401,7 +401,7 @@ That's the compound effect.
 
 ```bash
 # New project
-cp META/prompts/project-template.md my-project/AGENTS.md
+cp META/NO-AGENTS.md my-project/AGENTS.md
 ln -s AGENTS.md my-project/CLAUDE.md
 # Edit with: Inherits: ../META/agents/base.md
 

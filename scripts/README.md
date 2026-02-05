@@ -19,6 +19,15 @@ Common commands:
 - `meta abort` — stop and clean up
 - `meta run ... --auto-approve` — auto-approve quality gates (use for test runs only)
 
+Tmux layout:
+- Control pane stays on top.
+- When steps have `PARALLEL_GROUP`, META creates a tmux window per group with a sub-manager pane on top and workers below.
+
+Optional env:
+- `META_GATE_TMUX_SNAPSHOT=1` — include a brief tmux pane snapshot in gate prompts
+- `META_GATE_TMUX_SNAPSHOT_LINES=6` — lines per pane (default 6)
+- `META_GATE_TMUX_SNAPSHOT_PANES=4` — max panes (default 4)
+
 Pipelines live in `workflows/pipelines/`.
 
 ## new-project.sh
@@ -28,7 +37,7 @@ Pipelines live in `workflows/pipelines/`.
 ```
 
 Creates a project in `~/code`, writes a `KICKOFF.md`, and prints the kickoff prompt.
-Also creates `AGENTS.md` (placeholder), a `CLAUDE.md` symlink, and scaffolds `docs/`, `config/`, and `.meta/` directories.
+Also copies `NO-AGENTS.md` to `AGENTS.md`, creates a `CLAUDE.md` symlink, and scaffolds `docs/`, `config/`, and `.meta/` directories.
 The kickoff flow will overwrite `AGENTS.md` and create `docs/PRD.md`.
 
 See `patterns/project-structures/config-directory.md` for config consolidation guidance.
